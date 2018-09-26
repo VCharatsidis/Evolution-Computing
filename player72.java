@@ -68,8 +68,59 @@ public class player72 implements ContestSubmission
         	
         	for(int dim = 0; dim < 10; dim++)
         	{
-        		int rangeMax = 10;
-            	double randomValue = (rangeMax * random.nextDouble()) - 5;
+        		double rangeMax = 10;
+        		double rangeMin = -5;
+        		if(dim == 0)
+        		{
+        			rangeMax = 1.5;
+        			rangeMin = -2;
+        		}
+        		else if(dim == 1)
+        		{
+        			rangeMax = 1.5;
+        			rangeMin = 3;
+        		}
+        		else if(dim == 2)
+        		{
+        			rangeMax = 2;
+        			rangeMin = -2;
+        		}
+        		else if(dim == 3)
+        		{
+        			rangeMax = 2;
+        			rangeMin = -4;
+        		}
+        		else if(dim == 4)
+        		{
+        			rangeMax = 3;
+        			rangeMin = 0;
+        		}
+        		else if(dim == 5)
+        		{
+        			rangeMax = 3;
+        			rangeMin = -3;
+        		}
+        		else if(dim == 6)
+        		{
+        			rangeMax = 3;
+        			rangeMin = 0;
+        		}
+        		else if(dim == 7)
+        		{
+        			rangeMax = 3;
+        			rangeMin = -2;
+        		}
+        		else if(dim == 8)
+        		{
+        			rangeMax = 2;
+        			rangeMin = 1;
+        		}
+        		else if(dim == 9)
+        		{
+        			rangeMax = 1.5;
+        			rangeMin = -1;
+        		}
+            	double randomValue = (rangeMax * random.nextDouble()) + rangeMin;
             	
         		pop[individual][dim] = randomValue;
         	}
@@ -89,16 +140,6 @@ public class player72 implements ContestSubmission
         	double[] fitnesses = new double[pop_size];
         	double[][] next_gen = new double[pop_size][10];
         	
-        	//if(runs ==100) {
-//        	for(int j = 0; j<1;j++)
-//			{
-//				for(int i = 0; i < 10; i++)
-//    			{
-//    				System.out.print(pop[evals][i] +" ");
-//    			}
-//    			System.out.println("indiv  "+j);
-//			}
-        	//}
         	while(evals < pop_size)
             {
 
@@ -159,7 +200,7 @@ public class player72 implements ContestSubmission
 				}
         		else {
         			//Partial wheel
-            		int interval = 2;
+            		int interval = 4;
             		
             		int start_a = random.nextInt(pop_size-interval+1);
             		parent_a = partial_rouletteWheel(fitnesses, start_a, interval);
@@ -202,7 +243,13 @@ public class player72 implements ContestSubmission
         	runs++;
         	if(runs % 5 ==0)
         	{
+        		System.out.println();
         		System.out.println("run "+runs +" avg fitness : "+sumFitness/pop_size);
+            	System.out.println("fitness "+fi[0].fitness);
+            	for(int dim = 0; dim < 10; dim++)
+            	{
+            		System.out.print("dim "+dim+" "+pop[fi[0].index][dim]);
+            	}
         	}
         	
         }  
@@ -246,7 +293,7 @@ public class player72 implements ContestSubmission
 	{
 		int dim = random.nextInt(10);
 		double chanse = random.nextDouble();
-		double change = 0.05;
+		double change = 0.15;
 		
 		if(chanse >0.5 && ((indiv[dim]+change) <5))
 		{
