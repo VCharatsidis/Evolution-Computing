@@ -132,7 +132,7 @@ public class player72 implements ContestSubmission
         PriorityQueue<FitnessIndex> fitnesses_pq = new PriorityQueue<FitnessIndex>(new FitnessComparator());
         double sumFitness = 0;
         int runs = 0 ;
-        int offsprings = pop_size/2;
+        int offsprings = (int)(pop_size*0.5);
         int total_runs = (evaluations_limit_ - pop_size) / (offsprings);
         double[] fitnesses = new double[pop_size];
         
@@ -153,8 +153,9 @@ public class player72 implements ContestSubmission
         
         while(runs < total_runs)
         {
-
+        	//print(pop);
         	double[][] next_gen = new double[offsprings][10];
+        	int ten_percent = total_runs/10;
         	
         	for(int i = 0; i < offsprings; i++)
         	{
@@ -164,7 +165,7 @@ public class player72 implements ContestSubmission
         		int parent_b = 0;
             	int island_length = pop_size/4;
             	
-            	int ten_percent = total_runs/10;
+            	
             	boolean partial_border = (runs <= ten_percent || runs % 20 ==0);
             	boolean partial_rouletteWheel = (partial_border);
             	
@@ -317,7 +318,6 @@ public class player72 implements ContestSubmission
         			if(i ==0) {
         				System.out.print(" roulette ");
             		}
-        			
 				}
         		
 //        		if(runs>50) {
@@ -327,10 +327,12 @@ public class player72 implements ContestSubmission
 //        			uniformCrossOver(pop[parent_a], pop[parent_b], child);
 //        		}
         		//avg_CrossOver(pop[parent_a], pop[parent_b], child);
-        		if(runs % 3 == 0)
+        		if(runs % 2 == 0)
         		{
         			avg_CrossOver(pop[parent_a], pop[parent_b], child);
-        		}else {
+        		}
+        		else 
+        		{
         			uniformCrossOver(pop[parent_a], pop[parent_b], child);
         		}
         		
@@ -343,23 +345,21 @@ public class player72 implements ContestSubmission
         	}
         	
         	//MUTATE
-        	int individuals_to_mutate = offsprings/5;
+        	int individuals_to_mutate = offsprings/4;
         	int[] to_mutate = new int[individuals_to_mutate];
         	
         	for(int i = 0; i <individuals_to_mutate; i++)
         	{
         		//to_mutate[i] = random.nextInt(pop_size);
-        		int max = offsprings;
-        		int min = 0;
-        		
-        		to_mutate[i] = random.nextInt(max-min) +min;
+        		to_mutate[i] = random.nextInt(offsprings);
         	}
         	
         	for(int i = 0; i < individuals_to_mutate; i++)
         	{
         		int indiv = to_mutate[i];
-        	    mutateAllDims(next_gen[indiv]);
+        	    //mutateAllDims(next_gen[indiv]);
         		//mutate(pop[indiv]);
+        		mutateSomeDims(next_gen[indiv], 0.5);
         		//mutate(next_gen[indiv]);
         		//mutate(next_gen[indiv]);
         	}
@@ -387,12 +387,13 @@ public class player72 implements ContestSubmission
             }
         
         	System.out.println("run "+runs);
-        	FitnessIndex[] fi = new FitnessIndex[pop_size];
+        	FitnessIndex[] fi = new FitnessIndex[pop_size+offsprings];
         	
-        	fi = pq_to_array(fitnesses_pq);
+        	fi = pq_to_array(fitnesses_pq, offsprings);
         	
         	double[][] sorted = new double[pop_size][10];
-        	transfer_gen(pop, next_gen, fi, fitnesses, sorted);
+        	//transfer_gen(pop, next_gen, fi, fitnesses, sorted);
+        	stochastic_transfer_gen(pop, next_gen, fi, fitnesses, sorted);
         	
         	for(int ind = 0; ind < pop_size; ind++)
         	{
@@ -433,6 +434,57 @@ public class player72 implements ContestSubmission
         }  
 	}
 	
+	private void print(double[][] pop) {
+		// TODO Auto-generated method stub
+		for(int i =0; i< pop.length; i++)
+		{
+		    System.out.println();
+		    System.out.println("indiv "+i+" dims: ");
+			for(int dim = 0; dim < 10; dim++) {
+				System.out.print(pop[i][dim] + " , ");
+			}
+			System.out.println();
+		}
+	}
+
+	public void stochastic_transfer_gen(double[][] pop, double[][] next_gen,
+								FitnessIndex[] fi, double[] fitnesses, double[][] sorted)
+	{	
+		for(int i = 0; i < pop_size; i++)
+    	{
+			double sum = 0;
+			for(int j = 0; j < fi.length-i; j++)
+			{
+				sum += fi[j].fitness;
+			}
+			
+			int indiv = 0;
+			if(random.nextDouble() > 0.95)
+			{
+				indiv = random.nextInt(fi.length-i);
+			}
+			else {
+				indiv = rouletteWheel(sum, fi, fi.length-i);
+			}
+			
+			fitnesses[i] = fi[indiv].fitness;
+			int index = fi[indiv].getIndex();
+			fi[indiv] = fi[fi.length-i-1];
+					
+    		for(int j = 0; j < 10; j++)
+    		{
+    			if(index >= pop_size)
+    			{
+    				sorted[i][j] = next_gen[index - pop_size][j];
+    			}
+    			else
+    			{
+    				sorted[i][j] = pop[index][j];
+    			}	
+    		}	
+    	}
+	}
+	
 	public void transfer_gen(double[][] pop, double[][] next_gen,
 			FitnessIndex[] fi, double[] fitnesses, double[][] sorted)
 	{
@@ -453,17 +505,15 @@ public class player72 implements ContestSubmission
     			}	
     		}	
     	}
-	
-		//return sorted;
 	}
 	
-	public FitnessIndex[] pq_to_array(PriorityQueue<FitnessIndex> pq)
+	public FitnessIndex[] pq_to_array(PriorityQueue<FitnessIndex> pq, int offsprings)
 	{
 		//Iterator<FitnessIndex> fitness_iterator = pq.iterator();
-		FitnessIndex[] fi = new FitnessIndex[pop_size];
+		FitnessIndex[] fi = new FitnessIndex[pop_size+offsprings];
 		int counter = 0;
 		
-		while(counter<pop_size)
+		while(counter<(pop_size+offsprings))
 		{
 			
 			fi[counter] = pq.poll();
@@ -477,12 +527,44 @@ public class player72 implements ContestSubmission
 		return fi;
 	}
 	
+	public void mutateSomeDims(double[] indiv, double chanse2)
+	{
+		for(int dim = 0; dim < 10; dim++)
+		{
+			double chanse_to_mutate = random.nextDouble();
+			if(chanse2 > chanse_to_mutate) {
+				double chanse = random.nextDouble();
+				
+				double change = random.nextDouble() * 0.2 + 0.05;
+				
+				if(chanse > 0.5)
+				{
+					if(indiv[dim]+change <5)
+					{
+						indiv[dim] = indiv[dim] + change;
+					}
+					else {
+						indiv[dim] = indiv[dim] - change;
+					}
+				}
+				else if(((indiv[dim]-change) > -5))
+				{
+					indiv[dim] = indiv[dim] - change;
+				}else 
+				{
+					indiv[dim] = indiv[dim] + change;
+				}
+			}
+			
+		}
+	}
+	
 	public void mutateAllDims(double[] indiv)
 	{
 		for(int dim = 0; dim < 10; dim++)
 		{
 			double chanse = random.nextDouble();
-			double change = 0.15;
+			double change = 0.1;
 			
 			if(chanse > 0.5)
 			{
@@ -627,6 +709,23 @@ public class player72 implements ContestSubmission
 	
 		int parent = indexes_interval[choosen_indiv];
 		return parent;
+	}
+	
+	public int rouletteWheel(double sumFitness,  FitnessIndex[] fi, int participants)
+	{
+		
+		double rand = randomNumber(sumFitness);
+		
+		for(int i = 0; i < participants; i++)
+		{
+			rand -= fi[i].fitness;
+			
+			if(rand < 0)
+			{
+				return i;
+			}
+		}
+		return 0;
 	}
 	
 	public int rouletteWheel(double sumFitness,  double[] fitnesses)
