@@ -13,6 +13,10 @@ public class player72 implements ContestSubmission
 {
 	Random random = new Random();
 	int pop_size = 1000;
+	int offsprings = (int)(pop_size * 1);
+	int dimensions = 10;
+	int attributes = 3;
+	boolean shock =  false;
 	Random rnd_;
 	ContestEvaluation evaluation_;
     private int evaluations_limit_;
@@ -60,306 +64,181 @@ public class player72 implements ContestSubmission
 		
        
         // init population
-        double[][] pop = new double[pop_size][10];
-        
-        for(int individual = 0; individual < pop_size; individual++)
-        {
-        	pop[individual] = new double[10];
-        	
-        	for(int dim = 0; dim < 10; dim++)
-        	{
-        		double rangeMax = 10;
-        		double rangeMin = -5;
-//        		if(dim == 0)
-//        		{
-//        			rangeMax = 1.5;
-//        			rangeMin = -2;
-//        		}
-//        		else if(dim == 1)
-//        		{
-//        			rangeMax = 1.5;
-//        			rangeMin = 3;
-//        		}
-//        		else if(dim == 2)
-//        		{
-//        			rangeMax = 2;
-//        			rangeMin = -2;
-//        		}
-//        		else if(dim == 3)
-//        		{
-//        			rangeMax = 2;
-//        			rangeMin = -4;
-//        		}
-//        		else if(dim == 4)
-//        		{
-//        			rangeMax = 3;
-//        			rangeMin = 0;
-//        		}
-//        		else if(dim == 5)
-//        		{
-//        			rangeMax = 3;
-//        			rangeMin = -3;
-//        		}
-//        		else if(dim == 6)
-//        		{
-//        			rangeMax = 3;
-//        			rangeMin = 0;
-//        		}
-//        		else if(dim == 7)
-//        		{
-//        			rangeMax = 3;
-//        			rangeMin = -2;
-//        		}
-//        		else if(dim == 8)
-//        		{
-//        			rangeMax = 2;
-//        			rangeMin = 1;
-//        		}
-//        		else if(dim == 9)
-//        		{
-//        			rangeMax = 1.5;
-//        			rangeMin = -1;
-//        		}
-            	double randomValue = (rangeMax * random.nextDouble()) + rangeMin;
-            	
-        		pop[individual][dim] = randomValue;
-        	}
-        	
-        }
-        // init population
-        // calculate fitness
+        double[][][] pop = new double[pop_size][3][dimensions];
+        initPop(pop);
+                // calculate fitness
       
         PriorityQueue<FitnessIndex> fitnesses_pq = new PriorityQueue<FitnessIndex>(new FitnessComparator());
         double sumFitness = 0;
+        double childrenSumFitness = 0;
         int runs = 0 ;
-        int offsprings = (int)(pop_size*0.5);
+       
+        //int offsprings = 800;
+        System.out.println("offsprings "+offsprings);
         int total_runs = (evaluations_limit_ - pop_size) / (offsprings);
         double[] fitnesses = new double[pop_size];
+        double[] ranks = new double[pop_size];
         
         int evals = 0;
         while(evals < pop_size)
         {
-
-            Double fitness = (double) evaluation_.evaluate(pop[evals]);
+            Double fitness = (double) evaluation_.evaluate(pop[evals][0]);
            
             FitnessIndex fitnessesIndexes = new FitnessIndex(evals, fitness);
             fitnesses_pq.add(fitnessesIndexes);
             
             fitnesses[evals] = fitness;
+            ranks[evals] = fitness;
             sumFitness += fitness;
             evals++;
             // Select survivors
         }
+        int afterShock = 0;
+        
         
         while(runs < total_runs)
         {
+        	double last_avg_children_ftiness = childrenSumFitness/offsprings;
         	//print(pop);
-        	double[][] next_gen = new double[offsprings][10];
+        	double[][][] next_gen = new double[offsprings][3][dimensions];
         	int ten_percent = total_runs/10;
         	
+        	//print(pop);
+        	if(runs == total_runs-1)
+    		{
+        		for(int i = 0; i < fitnesses.length; i++)
+            	{
+            		System.out.println("indiv "+i+" fitness "+fitnesses[i]);
+            	}
+        		
+        		System.out.println();
+        		
+        		for(int i = 0; i < ranks.length; i++)
+            	{
+            		System.out.println("indiv "+i+" fitness "+ranks[i]);
+            	}
+    		}
+        	sumFitness = sumFitness(fitnesses);
+    		
+    		if(runs % 10 == 0)
+    		{
+    			System.out.println();
+        		System.out.println("run "+runs +" avg fitness : "+(sumFitness/pop_size) +" best indiv : "+fitnesses[0]);
+        		System.out.println();
+    		}
+        	
+    		
+    		
         	for(int i = 0; i < offsprings; i++)
         	{
-        		double[] child = new double[10];
+        		double[][] child = new double[3][dimensions];
         		
         		int parent_a = 0;
         		int parent_b = 0;
-            	int island_length = pop_size/4;
             	
+            	boolean partial = (runs <= (ten_percent * 9) || runs % 20 ==0);
             	
-            	boolean partial_border = (runs <= ten_percent || runs % 20 ==0);
-            	boolean partial_rouletteWheel = (partial_border);
+            	double[] copy_fitness = new double[pop_size];
+            	int[] indexes = new int[pop_size];
             	
-            	if(true) {
-            		if( i == 0) {
-            			System.out.println();
-                		System.out.println("run "+runs +" avg fitness : "+sumFitness/pop_size);
-            		}
+            	for(int j  = 0; j < pop_size; j++)
+            	{
+            		copy_fitness[j] = fitnesses[j];
             		
+            		
+            		indexes[j] = j;
+            		
+            	}
+            	
+            	
+            	if(partial) {
         			//Partial wheel
             		int interval = 2;
+            	
+            		if(offsprings < (pop_size/2))
+    				{
+            			int participants = ranks.length - i;
+            			parent_a = partial_rouletteWheel(ranks, interval, participants);
+            			int last = participants - 1;
+            			ranks[parent_a] = ranks[last];
+                		indexes[parent_a] = indexes[last];
+                		
+                		parent_b = partial_rouletteWheel(ranks, interval, participants -1);	
+                		last = participants - 2;
+                		ranks[parent_b] = ranks[last];
+                		indexes[parent_b] = indexes[last];
+                		
+                		arithmeticCrossOver(pop[indexes[parent_a]], pop[indexes[parent_b]], child);
+                		
+//                		if(runs % 2 == 0)
+//                		{
+//                			arithmeticCrossOver(pop[indexes[parent_a]], pop[indexes[parent_b]], child);
+//                		}
+//                		else 
+//                		{
+//                			uniformCrossOver(pop[indexes[parent_a]], pop[indexes[parent_b]], child);
+//                		}
+    				}
+            		else
+            		{
+            			parent_a = partial_rouletteWheel(ranks, interval, ranks.length);
+                		parent_b = partial_rouletteWheel(ranks, interval, ranks.length);	
+            			arithmeticCrossOver(pop[parent_a], pop[parent_b], child);
+            		}
             		
-            		parent_a = partial_rouletteWheel(fitnesses, interval);
-            		parent_b = partial_rouletteWheel(fitnesses, interval);	
             		if(i ==0) {
             			System.out.print(" partial ");
             		}
             		
 				}
             	
-            	boolean island_border = (runs < ten_percent * 9);
-            	boolean island_wheel = (!partial_rouletteWheel && island_border);
-            	
-            	if(false) {
-            		if( i == 0) {
-            			System.out.println();
-                		System.out.println("run "+runs +" avg fitness : "+sumFitness/pop_size);
-            		}
-            		int start = ((int)(i/island_length))*island_length;
-            		System.out.println("start "+start);
-            		//if(runs % 5 ==0) {
-//            			System.out.println();
-//            			System.out.println(" 0 ");
-//            			for(int ij =0; ij<10; ij++) {
-//            				System.out.print(pop[0][ij]+" ");
-//            				
-//        
-//            			}
-//            			System.out.println();
-//            			System.out.println(" isnaldn_length ");
-//            			for(int ij =0; ij<10; ij++) {
-//            			
-//            				System.out.print(pop[island_length][ij]+ " ");
-//
-//            			}
-//            			System.out.println();
-//            			System.out.println(" 2 isnaldn_length ");
-//            			for(int ij =0; ij<10; ij++) {
-//            		
-//            			
-//            				System.out.print(pop[island_length*2][ij]+" ");
-//            				
-//            				
-//            			}
-//            			System.out.println();
-//            			System.out.println(" 3 isnaldn_length ");
-//            			for(int ij =0; ij<10; ij++) {
-//            		
-//            				System.out.print(pop[island_length*3][ij]+" ");
-//            			}
-//            			System.out.println();
-            		if(runs %2 ==0) 
-            		{
-            			double[] temp = pop[0];
-            			double fitness_temp = fitnesses[0];
-            			
-            			pop[0] = pop[island_length];
-            			fitnesses[0] = fitnesses[island_length];
-            			
-            			pop[island_length] = temp;
-            			fitnesses[island_length] = fitness_temp;
-            			
-            			temp = pop[island_length * 2];
-            			fitness_temp = fitnesses[island_length * 2];
-            			
-            			pop[island_length * 2] = pop[island_length * 3];
-            			fitnesses[island_length * 2] = fitnesses[island_length * 3];
-            			
-            			pop[island_length * 3] = temp;
-            			fitnesses[island_length * 3] = fitness_temp;
-            		}else 
-            		{
-            			double[] temp = pop[0];
-            			double fitness_temp = fitnesses[0];
-            			
-            			pop[0] = pop[island_length * 2];
-            			fitnesses[0] = fitnesses[island_length * 2];
-            			
-            			pop[island_length * 2] = temp;
-            			fitnesses[island_length * 2] = fitness_temp;
-            			
-            			temp = pop[island_length];
-            			fitness_temp = fitnesses[island_length];
-            			
-            			pop[island_length] = pop[island_length * 3];
-            			fitnesses[island_length] = fitnesses[island_length * 3];
-            			
-            			pop[island_length * 3] = temp;
-            			fitnesses[island_length * 3] = fitness_temp;
-            		}
-            			
-//            			System.out.println();
-//            			System.out.println(" 0 ");
-//            			for(int ij =0; ij<10; ij++) {
-//            				System.out.print(pop[0][ij]+" ");
-//            				
-//        
-//            			}
-//            			System.out.println();
-//            			System.out.println(" isnaldn_length ");
-//            			for(int ij =0; ij<10; ij++) {
-//            			
-//            				System.out.print(pop[island_length][ij]+ " ");
-//
-//            			}
-//            			System.out.println();
-//            			System.out.println(" 2 isnaldn_length ");
-//            			for(int ij =0; ij<10; ij++) {
-//            		
-//            			
-//            				System.out.print(pop[island_length*2][ij]+" ");
-//            				
-//            				
-//            			}
-//            			System.out.println();
-//            			System.out.println(" 3 isnaldn_length ");
-//            			for(int ij =0; ij<10; ij++) {
-//            		
-//            				System.out.print(pop[island_length*3][ij]+" ");
-//            			}
-//            			System.out.println();
-            			
-            		//}
-            		parent_a = island_wheel(fitnesses, start, island_length);
-            		parent_b = island_wheel(fitnesses, start, island_length);
-            		if(i ==0) {
-            			System.out.print(" island ");
-            		}
-            		
-            	}
-            	
-        		if(!island_border)
+            	boolean roulette = !partial;
+            	   	
+            	if(roulette)
 				{
-        			if( i == 0) {
-            			System.out.println();
-                		System.out.println("run "+runs +" avg fitness : "+ sumFitness/pop_size);
-            		}
-        			parent_a = rouletteWheel(sumFitness, fitnesses);
-        			parent_b = rouletteWheel(sumFitness, fitnesses);
+        			parent_a = rouletteWheel(ranks);
+        			parent_b = rouletteWheel(ranks);
+        			
         			if(i ==0) {
         				System.out.print(" roulette ");
             		}
+        			arithmeticCrossOver(pop[parent_a], pop[parent_b], child);
 				}
-        		
-//        		if(runs>50) {
-//        			avg_CrossOver(pop[parent_a], pop[parent_b], child);
-//        		}
-//        		else {
-//        			uniformCrossOver(pop[parent_a], pop[parent_b], child);
-//        		}
-        		//avg_CrossOver(pop[parent_a], pop[parent_b], child);
-        		if(runs % 2 == 0)
-        		{
-        			avg_CrossOver(pop[parent_a], pop[parent_b], child);
-        		}
-        		else 
-        		{
-        			uniformCrossOver(pop[parent_a], pop[parent_b], child);
-        		}
+        	
         		
         		//System.out.println("parent a "+parent_a + " parent b "+parent_b);
         		
-        		for(int j = 0; j < 10; j++)
+        		for(int attr = 0; attr < attributes; attr++)
         		{
-        			next_gen[i][j] = child[j];
-        		}	
+        			for(int j = 0; j < dimensions; j++)
+            		{
+            			next_gen[i][attr][j] = child[attr][j];
+            		}	
+        		}
+        		
         	}
         	
         	//MUTATE
-        	int individuals_to_mutate = offsprings/4;
+        	
+        	int individuals_to_mutate = offsprings/10;
         	int[] to_mutate = new int[individuals_to_mutate];
         	
         	for(int i = 0; i <individuals_to_mutate; i++)
         	{
+        		//to_mutate[i] = random.nextInt(100);
         		//to_mutate[i] = random.nextInt(pop_size);
-        		to_mutate[i] = random.nextInt(offsprings);
+        		int max = offsprings;
+        		int min = 0;
+        		
+        		to_mutate[i] = random.nextInt(max-min) +min;
         	}
         	
         	for(int i = 0; i < individuals_to_mutate; i++)
         	{
         		int indiv = to_mutate[i];
-        	    //mutateAllDims(next_gen[indiv]);
+         		
+         	    mutateAllDims(next_gen[indiv]);
         		//mutate(pop[indiv]);
-        		mutateSomeDims(next_gen[indiv], 0.5);
         		//mutate(next_gen[indiv]);
         		//mutate(next_gen[indiv]);
         	}
@@ -370,140 +249,390 @@ public class player72 implements ContestSubmission
             {
                 FitnessIndex fitnessesIndexes = new FitnessIndex(evals,  fitnesses[evals] );
                 fitnesses_pq.add(fitnessesIndexes);
+                
                 evals++;
-                // Select survivors
+               
             }
             
-            int children = pop_size;
-    		while(children < (pop_size + offsprings))
+            int children = 0;
+            childrenSumFitness = 0;
+    		while(children < offsprings)
             {
-                Double fitness = (double) evaluation_.evaluate(next_gen[children - pop_size]);
-               
-                FitnessIndex fitnessesIndexes = new FitnessIndex(children, fitness);
+                Double fitness = (double) evaluation_.evaluate(next_gen[children][0]);
+               //System.out.println("fitnesses[evals] "+fitness);
+                FitnessIndex fitnessesIndexes = new FitnessIndex(children + pop_size, fitness);
                 fitnesses_pq.add(fitnessesIndexes);
-                
+                childrenSumFitness += fitness;
                 children++;
-                // Select survivors
+               
             }
-        
-        	System.out.println("run "+runs);
+   
         	FitnessIndex[] fi = new FitnessIndex[pop_size+offsprings];
         	
         	fi = pq_to_array(fitnesses_pq, offsprings);
         	
-        	double[][] sorted = new double[pop_size][10];
-        	//transfer_gen(pop, next_gen, fi, fitnesses, sorted);
-        	stochastic_transfer_gen(pop, next_gen, fi, fitnesses, sorted);
-        	
-        	for(int ind = 0; ind < pop_size; ind++)
-        	{
-        		for(int j = 0; j < 10; j++) {
-        			pop[ind][j] = sorted[ind][j];
+        	if(runs == total_runs-1) {
+        		for(int i = 0; i < fi.length; i++)
+            	{
+            		System.out.println("indiv "+i+" fi "+fi[i].fitness);
+            	}
+        		System.out.println();
+        		
+        		for(int attr = 1; attr < attributes; attr++)
+        		{
+        			System.out.println();
+        			for(int dim = 0; dim < 10; dim++)
+        			{
+        				System.out.println("pop[0][+"+attr+"]"+"["+ dim+"] : "+pop[0][attr][dim]);
+        			}
+        			System.out.println();
         		}
         	}
-        	
-        	runs++;
-        	if(runs % 50 ==0)
+        	// Select survivors	
+        	//stochastic_transfer_gen(pop, next_gen, fi, fitnesses,ranks);
+        	//transfer_gen(pop, next_gen, fi, fitnesses, ranks);
+        	if(runs % 10 == 0)
         	{
-        		System.out.println();
-        		sumFitness = 0;
-        		for( int fit = 0; fit < pop_size; fit++)
+        		stochastic_transfer_gen(pop, next_gen, fi, fitnesses, ranks);
+        	}
+        	else
+        	{
+        		transfer_gen(pop, next_gen, fi, fitnesses, ranks);
+        	}
+        	
+        	double epsilon = 0;
+        	if(last_avg_children_ftiness > 1)
+        	{
+        		epsilon = 0.001;
+        				
+        	}
+        	else if((last_avg_children_ftiness * 10) > 1)
+        	{
+        		epsilon = 0.0001;
+        	}
+        	else if((last_avg_children_ftiness * 100) > 1)
+        	{
+        		epsilon = 0.0001;
+        	}else if(last_avg_children_ftiness * 1000 > 1)
+        	{
+        		epsilon = 0.00001;
+        	}else if(last_avg_children_ftiness * 10000 >1)
+        	{
+        		epsilon = 0.000001;
+        	}else if(last_avg_children_ftiness * 100000 >1)
+        	{
+        		epsilon = 0.0000001;
+        	}
+        	if(shock)
+        	{
+        		if(afterShock == 0)
         		{
-        			sumFitness += fitnesses[fit];
+        			antishock(pop);
         		}
         		
-        		System.out.println("run "+ runs +" avg fitness : "+ (sumFitness/pop_size));
-            	System.out.println("fitness "+fi[0].fitness);
-            	
-            	for(int dim = 0; dim < 10; dim++)
-            	{
-            		int index = fi[0].index;
-            		if(index >= pop_size)
-            		{
-            			System.out.print("dim "+dim+" "+pop[index - pop_size][dim]);
-            		}
-            		else
-            		{
-            			System.out.print("dim "+dim+" "+pop[index][dim]);
-            		}
-            		
-            	}
-            	System.out.println();
+        		//offsprings = (int)(pop_size *0.3);
+        		afterShock++;
+        		if(afterShock > 30)
+        		{
+        			shock = false;
+        			afterShock = 0;
+        		}
         	}
         	
+        	double avg_children_fitness = childrenSumFitness/offsprings;
+    		if((Math.abs(last_avg_children_ftiness - avg_children_fitness) < epsilon) && !shock)
+    		{
+    			if(last_avg_children_ftiness > 1)
+    			{
+    				initPop(pop);
+    				System.out.println("Pop Init -------------------------------------------------------------------------------------------------");
+    				evals = 0;
+			        while(evals < pop_size)
+			        {
+			            Double fitness = (double) evaluation_.evaluate(pop[evals][0]);
+			           
+			            FitnessIndex fitnessesIndexes = new FitnessIndex(evals, fitness);
+			            fitnesses_pq.add(fitnessesIndexes);
+			            
+			            fitnesses[evals] = fitness;
+			            ranks[evals] = fitness;
+			            sumFitness += fitness;
+			            evals++;
+			            // Select survivors
+			        }
+			        
+    			}else
+    			{
+    				shock = true;
+        			//offsprings = pop_size;
+        			shock(pop);
+        			
+        			System.out.println(" POPULATION HAVE BEEN SHOOOCKED !!! ");
+    			}
+    			
+    			
+    		}
+        	
+//        	if(runs % 32545252 ==0)
+//        	{
+//        		System.out.println();
+//            	System.out.println("fitness of best indiv"+fi[0].fitness);
+//            	
+//            	for(int dim = 0; dim < 10; dim++)
+//            	{
+//            		int index = fi[0].index;
+//            		if(index >= pop_size)
+//            		{
+//            			System.out.print("dim "+dim+" "+pop[index - pop_size][0][dim]);
+//            		}
+//            		else
+//            		{
+//            			System.out.print("dim "+dim+" "+pop[index][0][dim]);
+//            		}
+//            		
+//            	}
+//            	System.out.println();
+//        	}
+        	runs++;
         }  
 	}
 	
-	private void print(double[][] pop) {
+	private void shockIndiv(double[][] indiv)
+	{
+		for(int dim = 0; dim < 10; dim++)
+    	{
+			double chanse = random.nextDouble() * 2 - 1;
+    		double sign = Math.signum(chanse);
+    		double shock = random.nextDouble();
+        	
+    		indiv[0][dim] = indiv[0][dim] + sign * shock;
+    	}
+		
+		for(int mutate_rate = 0; mutate_rate < 10; mutate_rate++)
+    	{
+    		//from 0.25 to 0.75
+    		double mu_rate = random.nextDouble() * 0.5 + 0.25;
+    		indiv[1][mutate_rate] = mu_rate;
+    	}
+    	
+    	for(int mutate_size = 0; mutate_size < 10; mutate_size++)
+    	{
+    		//from -0.5 to 0.5
+    		double chanse = random.nextDouble() * 1 - 0.5;
+    		double sign = Math.signum(chanse);
+    		double mu_size = random.nextDouble() * 0.5 + 0.1;
+    		indiv[2][mutate_size] = sign * mu_size;
+    	}
+	}
+	
+	private void antishock(double[][][] pop) {
+		// TODO Auto-generated method stub
+		for(int individual = 0; individual < pop_size; individual++)
+        {
+//			
+			for(int mutate_rate = 0; mutate_rate < 10; mutate_rate++)
+        	{
+        		//from 0.25 to 0.75
+        		double mu_rate = random.nextDouble() * 0.2 + 0.1;
+        		pop[individual][1][mutate_rate] = mu_rate;
+        	}
+        	
+        	for(int mutate_size = 0; mutate_size < 10; mutate_size++)
+        	{
+        		//from -0.5 to 0.5
+        		double chanse = random.nextDouble() * 1 - 0.5;
+        		double sign = Math.signum(chanse);
+        		double mu_size = random.nextDouble() * 0.2 + 0.1;
+        		pop[individual][2][mutate_size] = sign * mu_size;
+        	}
+        }
+	}
+	
+	private void shock(double[][][] pop) {
+		// TODO Auto-generated method stub
+		for(int individual = 0; individual < pop_size; individual++)
+        {
+			if(random.nextDouble() < 0.2) {
+				for(int dim = 0; dim < 10; dim++)
+	        	{
+					
+	        		double sign = getSign();
+	        		double shock = random.nextDouble()*3;
+	            	
+	        		if(sign <0)
+	        		{
+	        			shock = Math.max(-5, shock);
+	        		}
+	        		else {
+	        			shock = Math.min(5, shock);
+	        		}
+	        		pop[individual][0][dim] = pop[individual][0][dim] + sign * shock;
+	        	}
+			}
+			
+//			
+			for(int mutate_rate = 0; mutate_rate < 10; mutate_rate++)
+        	{
+        		//from 0.25 to 0.75
+        		double mu_rate = random.nextDouble() * 0.75 + 0.35;
+        		pop[individual][1][mutate_rate] = mu_rate;
+        	}
+        	
+        	for(int mutate_size = 0; mutate_size < 10; mutate_size++)
+        	{
+        		//from -0.5 to 0.5
+        		double sign = getSign();
+        		double mu_size = random.nextDouble() * 2 + 0.3;
+        		pop[individual][2][mutate_size] = sign * mu_size;
+        	}
+        }
+	}
+
+	private void initPop(double[][][] pop)
+	{
+		for(int individual = 0; individual < pop_size; individual++)
+        {
+        	pop[individual] = new double[3][dimensions];
+        	
+        	for(int dim = 0; dim < 10; dim++)
+        	{
+        		double rangeMax = 10;
+        		double rangeMin = -5;
+
+            	double randomValue = (rangeMax * random.nextDouble()) + rangeMin;
+            	
+        		pop[individual][0][dim] = randomValue;
+        	}
+        	
+        	for(int mutate_rate = 0; mutate_rate < 10; mutate_rate++)
+        	{
+        		//from 0.1 to 0.5
+        		double mu_rate = random.nextDouble() * 0.4 + 0.1;
+        		//double mu_rate = 0.2;
+        		pop[individual][1][mutate_rate] = mu_rate;
+        	}
+        	
+        	for(int mutate_size = 0; mutate_size < 10; mutate_size++)
+        	{
+        		//from -0.5 to 0.5
+        		
+        		double sign = getSign();
+        		
+        		double mu_size = random.nextDouble() * 0.5 + 0.05;
+        		//double mu_size = 0.15;
+        		pop[individual][2][mutate_size] = sign * mu_size;
+        	}
+        }
+	}
+	private double getSign()
+	{
+		double chanse = random.nextDouble() * 1 - 0.5;
+		double sign = Math.signum(chanse);
+		
+		return sign;
+	}
+	
+	private void print(double[][][] pop) {
 		// TODO Auto-generated method stub
 		for(int i =0; i< pop.length; i++)
 		{
 		    System.out.println();
 		    System.out.println("indiv "+i+" dims: ");
-			for(int dim = 0; dim < 10; dim++) {
-				System.out.print(pop[i][dim] + " , ");
+			for(int dim = 0; dim < dimensions; dim++) {
+				System.out.print(pop[i][0][dim] + " , ");
 			}
 			System.out.println();
 		}
 	}
 
-	public void stochastic_transfer_gen(double[][] pop, double[][] next_gen,
-								FitnessIndex[] fi, double[] fitnesses, double[][] sorted)
+	public void stochastic_transfer_gen(double[][][] pop, double[][][] next_gen,
+								FitnessIndex[] fi, double[] fitnesses, double[] ranks)
 	{	
+		double[][][] sorted = new double[pop_size][3][dimensions];
 		for(int i = 0; i < pop_size; i++)
     	{
-			double sum = 0;
-			for(int j = 0; j < fi.length-i; j++)
-			{
-				sum += fi[j].fitness;
-			}
-			
 			int indiv = 0;
-			if(random.nextDouble() > 0.95)
+			// elitism
+			int elites = 30;
+			if(i < elites) {
+				indiv = i;
+			}
+			else if(random.nextDouble() > 0.98)
 			{
+				//5% of indivs are choosen by chanse
 				indiv = random.nextInt(fi.length-i);
 			}
 			else {
-				indiv = rouletteWheel(sum, fi, fi.length-i);
+				indiv = rouletteWheel(fi, fi.length-i);
 			}
-			
+			ranks[i] =  (int) ((Math.abs(fi[indiv].getIndex() - fi.length + offsprings)+100)/100);
 			fitnesses[i] = fi[indiv].fitness;
 			int index = fi[indiv].getIndex();
 			fi[indiv] = fi[fi.length-i-1];
-					
-    		for(int j = 0; j < 10; j++)
+			
+			for(int attr = 0; attr < attributes; attr++)
+			{
+				for(int j = 0; j < dimensions; j++)
+	    		{
+	    			if(index >= pop_size)
+	    			{
+	    				sorted[i][attr][j] = next_gen[index - pop_size][attr][j];
+	    			}
+	    			else
+	    			{
+	    				sorted[i][attr][j] = pop[index][attr][j];
+	    			}	
+	    		}	
+			}
+    	}
+		
+		for(int ind = 0; ind < pop_size; ind++)
+    	{
+    		for(int attr = 0; attr < attributes; attr++)
     		{
-    			if(index >= pop_size)
-    			{
-    				sorted[i][j] = next_gen[index - pop_size][j];
-    			}
-    			else
-    			{
-    				sorted[i][j] = pop[index][j];
-    			}	
-    		}	
+    			for(int j = 0; j < dimensions; j++) {
+        			pop[ind][attr][j] = sorted[ind][attr][j];
+        		}
+    		}
+    		
     	}
 	}
 	
-	public void transfer_gen(double[][] pop, double[][] next_gen,
-			FitnessIndex[] fi, double[] fitnesses, double[][] sorted)
+	public void transfer_gen(double[][][] pop, double[][][] next_gen,
+			FitnessIndex[] fi, double[] fitnesses, double[] ranks)
 	{
+		double[][][] sorted = new double[pop_size][3][dimensions];
 		for(int i = 0; i < pop_size; i++)
     	{
 			fitnesses[i] = fi[i].fitness;
+			ranks[i] = (int) ((Math.abs(fi[i].getIndex() - fi.length + offsprings)+100)/100);
 			int index = fi[i].getIndex();
 			
-    		for(int j = 0; j < 10; j++)
+			for(int attr = 0; attr < attributes; attr++)
+			{
+				for(int j = 0; j < dimensions; j++)
+	    		{
+	    			if(index >= pop_size)
+	    			{
+	    				sorted[i][attr][j] = next_gen[index - pop_size][attr][j];
+	    			}
+	    			else
+	    			{
+	    				sorted[i][attr][j] = pop[index][attr][j];
+	    			}	
+	    		}	
+			}
+    	}
+		
+		for(int ind = 0; ind < pop_size; ind++)
+    	{
+    		for(int attr = 0; attr < attributes; attr++)
     		{
-    			if(index >= pop_size)
-    			{
-    				sorted[i][j] = next_gen[index - pop_size][j];
-    			}
-    			else
-    			{
-    				sorted[i][j] = pop[index][j];
-    			}	
-    		}	
+    			for(int j = 0; j < dimensions; j++) {
+        			pop[ind][attr][j] = sorted[ind][attr][j];
+        		}
+    		}
+    		
     	}
 	}
 	
@@ -517,9 +646,9 @@ public class player72 implements ContestSubmission
 		{
 			
 			fi[counter] = pq.poll();
-			if(counter < 100) {
-				//System.out.println("index "+ fi[counter].index +" fitness "+fi[counter].fitness);
-			}
+//			if(counter < 100) {
+//				//System.out.println("index "+ fi[counter].index +" fitness "+fi[counter].fitness);
+//			}
 				
 			counter++;
 		}
@@ -529,7 +658,7 @@ public class player72 implements ContestSubmission
 	
 	public void mutateSomeDims(double[] indiv, double chanse2)
 	{
-		for(int dim = 0; dim < 10; dim++)
+		for(int dim = 0; dim < dimensions; dim++)
 		{
 			double chanse_to_mutate = random.nextDouble();
 			if(chanse2 > chanse_to_mutate) {
@@ -550,7 +679,8 @@ public class player72 implements ContestSubmission
 				else if(((indiv[dim]-change) > -5))
 				{
 					indiv[dim] = indiv[dim] - change;
-				}else 
+				}
+				else 
 				{
 					indiv[dim] = indiv[dim] + change;
 				}
@@ -559,29 +689,29 @@ public class player72 implements ContestSubmission
 		}
 	}
 	
-	public void mutateAllDims(double[] indiv)
+	public void mutateAllDims(double[][] indiv)
 	{
-		for(int dim = 0; dim < 10; dim++)
+		for(int dim = 0; dim < dimensions; dim++)
 		{
 			double chanse = random.nextDouble();
-			double change = 0.1;
+			double change = 0.15;
 			
 			if(chanse > 0.5)
 			{
-				if(indiv[dim]+change <5)
+				if(indiv[0][dim]+change <5)
 				{
-					indiv[dim] = indiv[dim] + change;
+					indiv[0][dim] = indiv[0][dim] + change;
 				}
 				else {
-					indiv[dim] = indiv[dim] - change;
+					indiv[0][dim] = indiv[0][dim] - change;
 				}
 			}
-			else if(((indiv[dim]-change) > -5))
+			else if(((indiv[0][dim]-change) > -5))
 			{
-				indiv[dim] = indiv[dim] - change;
+				indiv[0][dim] = indiv[0][dim] - change;
 			}else 
 			{
-				indiv[dim] = indiv[dim] + change;
+				indiv[0][dim] = indiv[0][dim] + change;
 			}
 		}
 		
@@ -589,7 +719,7 @@ public class player72 implements ContestSubmission
 	
 	public void mutate(double[] indiv)
 	{
-		int dim = random.nextInt(10);
+		int dim = random.nextInt(dimensions);
 		double chanse = random.nextDouble();
 		double change = 0.1;
 		
@@ -602,33 +732,109 @@ public class player72 implements ContestSubmission
 		}
 	}
 	
-	public void avg_CrossOver(double[] parent_a, double[] parent_b, double[] child)
+	public void arithmeticCrossOver(double[][] parent_a, double[][] parent_b, double[][] child)
 	{
-		for(int i = 0; i < 10; i++)
+		// cross over
+		for(int attribute = 0; attribute < attributes ; attribute++)
 		{
-			child[i] = (parent_a[i] + parent_b[i])/2;
+			
+			for(int i = 0; i < dimensions; i++)
+			{
+				double a = 0;
+				double b = 0;
+				double increment = 0;
+				
+				double max = Math.max(parent_a[attribute][i], parent_b[attribute][i]);
+				double min = Math.min(parent_a[attribute][i], parent_b[attribute][i]);
+				
+				if(attribute == 0)
+				{
+					a = Math.min(5, max + increment);
+					b = Math.max(-5, min - increment);
+				}
+				if(attribute == 1)
+				{
+					increment = 0.2;
+					a = Math.min(1, max + increment);
+					b = Math.max(0, min - increment);
+				}
+				else if(attribute == 2)
+				{
+					//increment = 0.2;
+					a = max;
+					b = min;
+				}
+				
+				//double distance = random.nextDouble();
+				double distance = 0.5;
+				child[attribute][i] = (distance * a + (1 - distance) * b);
+			}
 		}
 		
+		//mutate forcebly at list 0.05 or -0.05
+		//mutateEmbeded(child);
+		double shock = random.nextDouble();
+		if(shock > 0.99) {
+			shockIndiv(child);
+		}
 	}
 	
-	public void uniformCrossOver(double[] parent_a, double[] parent_b, double[] child)
+	public void uniformCrossOver(double[][] parent_a, double[][] parent_b, double[][] child)
 	{
-		for(int i = 0; i < 10; i++)
+		for(int attribute = 0; attribute < attributes ; attribute++)
+		{
+			for(int i = 0; i < dimensions; i++)
+			{
+				double chanse = random.nextDouble();
+				if(chanse > 0.5 )
+				{
+					child[attribute][i] = parent_a[attribute][i];
+				}
+				else {
+					child[attribute][i] = parent_b[attribute][i];
+				}
+			}		
+		}
+		
+		//mutateEmbeded(child);
+		double shock = random.nextDouble();
+		if(shock > 0.99) {
+			shockIndiv(child);
+		}
+	}
+	
+	public void mutateEmbeded(double[][] child)
+	{
+		//mutate forcebly at list 0.05 or -0.05
+		for(int i = 0; i < dimensions; i++)
 		{
 			double chanse = random.nextDouble();
-			if(chanse > 0.5 )
+			
+			if(chanse < child[1][i])
 			{
-				child[i] = parent_a[i];
+				double mutation_size = child[2][i];
+				double val = child[0][i];
+				
+				if(mutation_size < 0)
+				{
+					double min_size = -0.05;
+					mutation_size = Math.min(min_size, mutation_size);
+					child[0][i] = Math.max(val + mutation_size, -5);
+				}
+				else 
+				{
+					double min_size = 0.05;
+					mutation_size = Math.max(min_size, mutation_size);
+					child[0][i] = Math.min(val + mutation_size, 5);
+				}
+				
 			}
-			else {
-				child[i] = parent_b[i];
-			}
-		}		
+		}
 	}
 	
 	public double[] crossOver(double[] parent_a, double[] parent_b)
 	{
-		double child[] = new double[10];
+		double child[] = new double[dimensions];
 		int crossOverPoint = 4;
 		
 		for(int i = 0; i < crossOverPoint; i++)
@@ -655,22 +861,22 @@ public class player72 implements ContestSubmission
 		return sumFitness;
 	}
 	
-	public int island_wheel(double[] fi, int start, int interval)
-	{
-		
-		double[] fitnesses_interval = new double[interval];
-		//gather interval consecutive fitnesses
-		for(int i = 0; i < interval; i++)
-		{
-			fitnesses_interval[i] = fi[i+start];
-		}
-		
-		double sumFitness_interval = sumFitness(fitnesses_interval);
-		//int choosen_indiv = rouletteWheel(sumFitness_interval, fitnesses_interval);
-		int choosen_indiv = partial_rouletteWheel(fitnesses_interval, 2);
-		int parent = choosen_indiv+start;
-		return parent;
-	}
+//	public int island_wheel(double[] fi, int start, int interval)
+//	{
+//		
+//		double[] fitnesses_interval = new double[interval];
+//		//gather interval consecutive fitnesses
+//		for(int i = 0; i < interval; i++)
+//		{
+//			fitnesses_interval[i] = fi[i+start];
+//		}
+//		
+//		double sumFitness_interval = sumFitness(fitnesses_interval);
+//		//int choosen_indiv = rouletteWheel(sumFitness_interval, fitnesses_interval);
+//		int choosen_indiv = partial_rouletteWheel(fitnesses_interval, 2);
+//		int parent = choosen_indiv+start;
+//		return parent;
+//	}
 	
 	
 	public int island_wheel(FitnessIndex[] fi, int start, int interval)
@@ -682,8 +888,7 @@ public class player72 implements ContestSubmission
 			fitnesses_interval[i] = fi[i+start].fitness;
 		}
 		
-		double sumFitness_interval = sumFitness(fitnesses_interval);
-		int choosen_indiv = rouletteWheel(sumFitness_interval, fitnesses_interval);
+		int choosen_indiv = rouletteWheel(fitnesses_interval);
 		
 		int parent = fi[choosen_indiv+start].index;
 		return parent;
@@ -692,29 +897,36 @@ public class player72 implements ContestSubmission
 	 * It will return an individual from start to start+interval proportionally to his fitness.
 	 * The fitest individual in that interval has higher chanses to be picked.
 	 */
-	public int partial_rouletteWheel(double[] fitnesses, int interval)
+	public int partial_rouletteWheel(double[] fitnesses, int interval, int participants)
 	{
 		double[] fitnesses_interval = new double[interval];
 		int[] indexes_interval = new int[interval];
 		//gather interval consecutive fitnesses
 		for(int i = 0; i < interval; i++)
 		{
-			int choosen = random.nextInt(fitnesses.length);
+			int choosen = random.nextInt(participants);
+			
 			indexes_interval[i] = choosen;
 			fitnesses_interval[i] = fitnesses[choosen];
 		}
 		
-		double sumFitness_interval = sumFitness(fitnesses_interval);
-		int choosen_indiv = rouletteWheel(sumFitness_interval, fitnesses_interval);
+		int choosen_indiv = rouletteWheel(fitnesses_interval);
 	
 		int parent = indexes_interval[choosen_indiv];
 		return parent;
 	}
 	
-	public int rouletteWheel(double sumFitness,  FitnessIndex[] fi, int participants)
+	public int rouletteWheel(FitnessIndex[] fi, int participants)
 	{
 		
-		double rand = randomNumber(sumFitness);
+		double sum = 0;
+		
+		for(int j = 0; j < participants; j++)
+		{
+			sum += fi[j].fitness;
+		}
+		
+		double rand = randomNumber(sum);
 		
 		for(int i = 0; i < participants; i++)
 		{
@@ -725,11 +937,13 @@ public class player72 implements ContestSubmission
 				return i;
 			}
 		}
-		return 0;
+		System.out.println("error");
+		return random.nextInt(fi.length);
 	}
 	
-	public int rouletteWheel(double sumFitness,  double[] fitnesses)
+	public int rouletteWheel(double[] fitnesses)
 	{
+		double sumFitness = sumFitness(fitnesses);
 		
 		double rand = randomNumber(sumFitness);
 		
@@ -742,7 +956,8 @@ public class player72 implements ContestSubmission
 				return i;
 			}
 		}
-		return 0;
+		System.out.println("error----------------------------------------------------------------------------------------------------------------------------------");
+		return random.nextInt(fitnesses.length);
 	}
 	
 	public double randomNumber(double sumFitness)
