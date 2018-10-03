@@ -15,9 +15,9 @@ public class player72 implements ContestSubmission
 	int rank_populations = 1500;
 	int ranks = 1;
 	int pop_size = ranks * rank_populations;
-	int offsprings = (int)(pop_size * 8);
+	int offsprings = (int)(pop_size * 6);
 	int dimensions = 10;
-	int attributes = 1;
+	int attributes = 3;
 	boolean shock =  false;
 	Random rnd_;
 	ContestEvaluation evaluation_;
@@ -151,7 +151,6 @@ public class player72 implements ContestSubmission
             	{
             		copy_fitness[j] = fitnesses[j];
             		
-            		
             		indexes[j] = j;
             		
             	}
@@ -248,28 +247,32 @@ public class player72 implements ContestSubmission
         	
         	//MUTATE
         	
-//        	int individuals_to_mutate = offsprings/5;
-//        	int[] to_mutate = new int[individuals_to_mutate];
-//        	
-//        	for(int i = 0; i <individuals_to_mutate; i++)
+        	int individuals_to_mutate = offsprings/10;
+//        	if(evals_left < evaluations_limit_/10)
 //        	{
-//        		//to_mutate[i] = random.nextInt(100);
-//        		//to_mutate[i] = random.nextInt(pop_size);
-//        		int max = offsprings;
-//        		int min = 0;
-//        		
-//        		to_mutate[i] = random.nextInt(max-min) +min;
+//        		individuals_to_mutate = offsprings/4;
 //        	}
-//        	
-//        	for(int i = 0; i < individuals_to_mutate; i++)
-//        	{
-//        		int indiv = to_mutate[i];
-//         		
-//         	    mutateAllDims(next_gen[indiv]);
-//        		//mutate(pop[indiv]);
-//        		//mutate(next_gen[indiv]);
-//        		//mutate(next_gen[indiv]);
-//        	}
+        	int[] to_mutate = new int[individuals_to_mutate];
+        	
+        	for(int i = 0; i <individuals_to_mutate; i++)
+        	{
+        		//to_mutate[i] = random.nextInt(100);
+        		//to_mutate[i] = random.nextInt(pop_size);
+        		int max = offsprings;
+        		int min = 0;
+        		
+        		to_mutate[i] = random.nextInt(max-min) +min;
+        	}
+        	
+        	for(int i = 0; i < individuals_to_mutate; i++)
+        	{
+        		int indiv = to_mutate[i];
+         		
+         	    //mutateAllDims(next_gen[indiv]);
+        		//mutate(pop[indiv]);
+        		mutate(next_gen[indiv]);
+        		//mutate(next_gen[indiv]);
+        	}
         	
           	fitnesses_pq.clear();
         	evals = 0;
@@ -321,15 +324,15 @@ public class player72 implements ContestSubmission
         	
         	// Select survivors	
         	//stochastic_transfer_gen(pop, next_gen, fi, fitnesses,ranks);
-        	transfer_gen(pop, next_gen, fi, fitnesses, ranks);
-//        	if(runs % 10 == 0)
-//        	{
-//        		stochastic_transfer_gen(pop, next_gen, fi, fitnesses, ranks);
-//        	}
-//        	else
-//        	{
-//        		transfer_gen(pop, next_gen, fi, fitnesses, ranks);
-//        	}
+//        	transfer_gen(pop, next_gen, fi, fitnesses, ranks);
+        	if(evals_left < evaluations_limit_/5)
+        	{
+        		stochastic_transfer_gen(pop, next_gen, fi, fitnesses, ranks);
+        	}
+        	else
+        	{
+        		transfer_gen(pop, next_gen, fi, fitnesses, ranks);
+        	}
         	
         	double epsilon = 0;
         	if(last_avg_children_ftiness > 1)
@@ -540,19 +543,19 @@ public class player72 implements ContestSubmission
         	{
         		for(int mutate_rate = 0; mutate_rate < 10; mutate_rate++)
             	{
-            		//from 0.1 to 0.5
-            		double mu_rate = random.nextDouble() * 0.4 + 0.1;
+            		//from 0.05 to 0.25
+            		double mu_rate = random.nextDouble() * 0.2 + 0.05;
             		//double mu_rate = 0.2;
             		pop[individual][1][mutate_rate] = mu_rate;
             	}
         		
         		for(int mutate_size = 0; mutate_size < 10; mutate_size++)
             	{
-            		//from -0.5 to 0.5
+            		//from -0.25 to 0.25
             		
             		double sign = getSign();
             		
-            		double mu_size = random.nextDouble() * 0.5 + 0.05;
+            		double mu_size = random.nextDouble() * 0.2 + 0.05;
             		//double mu_size = 0.15;
             		pop[individual][2][mutate_size] = sign * mu_size;
             	}
@@ -588,7 +591,7 @@ public class player72 implements ContestSubmission
     	{
 			int indiv = 0;
 			// elitism
-			int elites = 30;
+			int elites = 0;
 			if(i < elites) {
 				indiv = i;
 			}
@@ -752,18 +755,19 @@ public class player72 implements ContestSubmission
 		
 	}
 	
-	public void mutate(double[] indiv)
+	public void mutate(double[][] indiv)
 	{
 		int dim = random.nextInt(dimensions);
 		double chanse = random.nextDouble();
-		double change = 0.1;
+		double change = indiv[2][dim];
 		
-		if(chanse >0.5 && ((indiv[dim]+change) <5))
+		if(chanse >0.5 && ((indiv[0][dim]+change) <5))
 		{
-			indiv[dim] = indiv[dim] + change;
+			indiv[0][dim] = indiv[0][dim] + change;
 		}
-		else if(((indiv[dim]-change) > -5)){
-			indiv[dim] = indiv[dim] - change;
+		else if((indiv[0][dim]-change) > -5)
+		{
+			indiv[0][dim] = indiv[0][dim] - change;
 		}
 	}
 	
