@@ -12,10 +12,10 @@ import java.util.Properties;
 public class player72 implements ContestSubmission
 {
 	Random random = new Random();
-	int rank_populations = 1000;
+	int rank_populations = 1500;
 	int ranks = 1;
 	int pop_size = ranks * rank_populations;
-	int offsprings = (int)(pop_size * 25);
+	int offsprings = (int)(pop_size * 8);
 	int dimensions = 10;
 	int attributes = 1;
 	boolean shock =  false;
@@ -100,7 +100,7 @@ public class player72 implements ContestSubmission
         int afterShock = 0;
         
         
-        while(runs < total_runs)
+        while(true)
         {
         	double last_avg_children_ftiness = childrenSumFitness/offsprings;
         	//print(pop);
@@ -142,8 +142,8 @@ public class player72 implements ContestSubmission
         		int parent_a = 0;
         		int parent_b = 0;
             	
-            	boolean partial = (runs <= (ten_percent * 9) || runs % 20 ==0);
-            	
+            	//boolean partial = (runs <= total_runs || runs % 20 ==0);
+            	boolean partial = true;
             	double[] copy_fitness = new double[pop_size];
             	int[] indexes = new int[pop_size];
             	
@@ -224,8 +224,8 @@ public class player72 implements ContestSubmission
             	   	
             	if(roulette)
 				{
-        			parent_a = rouletteWheel(ranks);
-        			parent_b = rouletteWheel(ranks);
+        			parent_a = rouletteWheel(fitnesses);
+        			parent_b = rouletteWheel(fitnesses);
         			
         			if(i ==0) {
         				System.out.print(" roulette ");
@@ -1007,5 +1007,3 @@ public class player72 implements ContestSubmission
 	
 	
 }
-
-
