@@ -15,50 +15,17 @@ public class FitnessSelection implements IndividualSelection {
 			pop_interval[i] = pop[choosen];
 		}
 		
-		Individual choosen_indiv = rouletteWheel(pop_interval);
+		Individual choosen_indiv = rouletteWheel(pop_interval, interval);
 	
 		return choosen_indiv;
 	}
 	
 	/*
-	 * Returns 1 individual from the list fi with chanse proportionally to their fitness.
-	 * You can restrict the index of the candidate using participants.
-	 */
-	public int rouletteWheel(FitnessIndex[] fi, int participants)
-	{
-		
-		double sum = 0;
-		
-		for(int j = 0; j < participants; j++)
-		{
-			sum += fi[j].fitness;
-		}
-		
-		// Random number between 0 and sum of fitnesses.
-		double rand = Utils.randomNumber(sum);
-		
-		for(int i = 0; i < participants; i++)
-		{
-			rand -= fi[i].fitness;
-			
-			if(rand < 0)
-			{
-				return i;
-			}
-		}
-		
-		System.out.println("error-----------------");
-		
-		return player72.rnd_.nextInt(fi.length);
-	}
-
-	
-	/*
 	 * Returns 1 individual from the list fitnesses with chanse proportionally to their fitness.
 	 */
-	public Individual rouletteWheel(Individual[] pop)
+	public Individual rouletteWheel(Individual[] pop, int participants)
 	{
-		double sumFitness = Utils.sumFitness(pop);
+		double sumFitness = Utils.sumFitness(pop, participants);
 		
 		double rand = Utils.randomNumber(sumFitness);
 		

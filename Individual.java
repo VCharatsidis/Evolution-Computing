@@ -43,7 +43,7 @@ public class Individual {
 		
 		for(int dim = 0; dim < dimensions; dim++)
     	{
-			genome[dim] =  Utils.getSign() * Utils.double_in_range(genome_upper_value, genome_lower_value);
+			genome[dim] = Utils.getSign() * Utils.double_in_range(genome_upper_value, genome_lower_value);
 			mutation_steps[dim] = Utils.double_in_range(upper_mutation_step, lower_mutation_step);
     	}
 		

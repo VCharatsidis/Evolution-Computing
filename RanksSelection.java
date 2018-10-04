@@ -12,14 +12,14 @@ public class RanksSelection implements IndividualSelection{
 			pop_interval[i] = pop[choosen];
 		}
 		
-		Individual choosen_indiv = rouletteWheel(pop_interval);
+		Individual choosen_indiv = rouletteWheel(pop_interval, interval);
 	
 		return choosen_indiv;
 	}
 	
-	public Individual rouletteWheel(Individual[] pop)
+	public Individual rouletteWheel(Individual[] pop, int participants)
 	{
-		double sumRanks = Utils.sumRanks(pop);
+		double sumRanks = Utils.sumRanks(pop, participants);
 		
 		double rand = Utils.randomNumber(sumRanks);
 		

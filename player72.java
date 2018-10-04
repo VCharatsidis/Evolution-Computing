@@ -12,10 +12,10 @@ public class player72 implements ContestSubmission
 	public static double uper_bound = 5;
 	public static double lower_bound = -5;
 	
-	public static int rank_populations = 1500;
+	public static int rank_populations = 2000;
 	public static int ranks = 1;
 	public static int pop_size = ranks * rank_populations;
-	public static int offsprings = (int)(pop_size * 6);
+	public static int offsprings = (int)(pop_size * 5);
 	public static int dimensions = 10;
 	public static int evals_left;
 
@@ -74,7 +74,7 @@ public class player72 implements ContestSubmission
        
         double sumFitness = 0;
         double childrenSumFitness = 0;
-        int runs = 0 ;
+;
        
         //int offsprings = 800;
         System.out.println("offsprings "+offsprings);
@@ -85,15 +85,15 @@ public class player72 implements ContestSubmission
         pop = pq_to_array(sorted_pop);
     	
         fill_ranks(pop);
-        
-        int ten_percent = evaluations_limit_ / 10;
-        
+  
+        IndividualSelection fitnessSelection = new FitnessSelection();
         IndividualSelection rankSelection = new RanksSelection();
         ArithmeticCrossOver arithmeticCrossover = new ArithmeticCrossOver();
         SurvivorSelection survivorSelection = new SurvivorSelection();
        
         while(evals_left > 0)
         {
+        	
         	double last_avg_children_ftiness = childrenSumFitness/offsprings;
         	//print(pop);
         	Individual[] next_gen = new Individual[offsprings];
@@ -103,14 +103,10 @@ public class player72 implements ContestSubmission
     		{
         		printFitnesses(pop, 1);
         		printRanks(pop, 1);
+        		printInfo(sumFitness, evals_left, pop[0].fitness);
     		}
         	
-        	sumFitness = Utils.sumFitness(pop);
-    		
-    		if(evals_left % 10000 == 0)
-    		{
-    			printInfo(sumFitness, evals_left, pop[0].fitness);
-    		}
+        	sumFitness = Utils.sumFitness(pop, pop.length);
     		
     		Individual[] copy_pop = new Individual[pop_size];
 //        	for(int j  = 0; j < pop_size; j++)
@@ -120,81 +116,8 @@ public class player72 implements ContestSubmission
         	
         	for(int i = 0; i < offsprings; i++)
         	{
-        		Individual child = new Individual();
-        		
-        		Individual parent_a;
-        		Individual parent_b;
-            	
-            	//boolean partial = (runs <= total_runs || runs % 20 ==0);
-            	boolean partial = true;
-            
-            	if(partial) {
-        			//Partial wheel
-            		int interval = 2;
-            	
-            		if(false)
-            		//if(offsprings < pop_size/2)
-    				{
-            			int participants = pop.length - i;
-            			parent_a = rankSelection.partial_rouletteWheel(copy_pop, interval, participants);
-            			int last_individual = participants - 1;
-            			
-            			copy_pop[parent_a.index] = copy_pop[last_individual];
-                		
-                		parent_b = rankSelection.partial_rouletteWheel(copy_pop, interval, participants -1);	
-                		last_individual = participants - 2;
-                	
-                		copy_pop[parent_b.index] = copy_pop[last_individual];
-                		
-                		child = arithmeticCrossover.cross_over(parent_a, parent_b);
-                		
-//                		if(runs % 2 == 0)
-//                		{
-//                			arithmeticCrossover.cross_over(parent_a, parent_b);
-//                		}
-//                		else 
-//                		{
-//                			uniformCrossOver(pop[indexes[parent_a]], pop[indexes[parent_b]], child);
-//                		}
-    				}
-            		else
-            		{
-
-            			int random_a = rnd_.nextInt(pop_size);
-            			int random_b = rnd_.nextInt(pop_size);
-            			
-            			while(random_a == random_b)
-            			{
-            				random_b = rnd_.nextInt(pop_size);
-            			}
-            			parent_a = pop[random_a];
-            			parent_b = pop[random_b];
-                		
-            			child = arithmeticCrossover.cross_over(parent_a, parent_b);
-            			
-            		}
-            		
-            		if(i ==0) {
-            			System.out.print(" partial ");
-            		}
-            		
-				}
-            	
-            	boolean roulette = !partial;
-            	   	
-            	if(roulette)
-				{
-        			parent_a = rankSelection.rouletteWheel(pop);
-        			parent_b = rankSelection.rouletteWheel(pop);
-        			
-        			if(i ==0)
-        			{
-        				System.out.print(" roulette ");
-            		}
-        			
-        			child = arithmeticCrossover.cross_over(parent_a, parent_b);
-				}
-        	
+        		Individual child = produce_child(pop, sumFitness, fitnessSelection, rankSelection, arithmeticCrossover,
+						copy_pop, i);	
         		//System.out.println("parent a "+parent_a + " parent b "+parent_b);
             	next_gen[i] = child;
         	}
@@ -221,59 +144,115 @@ public class player72 implements ContestSubmission
     		
         	next_gen = pq_to_array(sorted_pop);
         	fill_ranks(next_gen);
-        	//PRINT INFO
-//        	if(runs == total_runs-1) {
-//        		for(int i = 0; i < fi.length; i++)
-//            	{
-//            		System.out.println("indiv "+i+" fi "+fi[i].fitness);
-//            	}
-//        		System.out.println();
-//        		
-//        		for(int attr = 1; attr < attributes; attr++)
-//        		{
-//        			System.out.println();
-//        			for(int dim = 0; dim < 10; dim++)
-//        			{
-//        				System.out.println("pop[0][+"+attr+"]"+"["+ dim+"] : "+pop[0][attr][dim]);
-//        			}
-//        			System.out.println();
-//        		}
-//        	}
         	
-        	// Select survivors	
-        	//stochastic_transfer_gen(pop, next_gen, fi, fitnesses,ranks);
-//        	transfer_gen(pop, next_gen, fi, fitnesses, ranks);
-        	int elites = 0;
-        	double chanse_to_randomly_choose_individual = 0.98;
-        	if(evals_left < evaluations_limit_/5)
-        	{
-        		survivorSelection.stochastic(pop, next_gen, elites, chanse_to_randomly_choose_individual, rankSelection);
-        	}
-        	else
-        	{
-        		survivorSelection.copy_populations(pop, next_gen);
-        	}
+        	survivorSelection(pop, fitnessSelection, survivorSelection, next_gen);
         	
         	// Defines epsilon given how small is the average fitness
         	double epsilon = define_epsilon(last_avg_children_ftiness);
-        	
         	double avg_children_fitness = childrenSumFitness/offsprings;
-    		if((Math.abs(last_avg_children_ftiness - avg_children_fitness) < epsilon) && !shock)
-    		{
-    			if(last_avg_children_ftiness > 0.1)
-    			{
-    				initPop(pop);
-    				evaluate_pop(pop, sorted_pop, sumFitness);
-    				System.out.println("Pop Init -------------------------------------------------------------------------------------------------");
-    			}
-    		}
         	
-        	if(evals_left == 1)
-        	{
-        		printBestIndivValues(pop);
-        	}
-        	runs++;
+    		diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, epsilon, avg_children_fitness);
+        
         }  
+	}
+
+	private Individual produce_child(Individual[] pop, double sumFitness, IndividualSelection fitnessSelection,
+			IndividualSelection rankSelection, ArithmeticCrossOver arithmeticCrossover, Individual[] copy_pop, int i) 
+	{
+		Individual child = new Individual();
+		
+		Individual parent_a = new Individual();
+		Individual parent_b = new Individual();
+		
+		//boolean partial = (runs <= total_runs || runs % 20 ==0);
+		boolean partial = true;
+         
+		if(partial) {
+			//Partial wheel
+			int interval = 2;
+		
+			//if(true)
+			// Parent selection with no replacement
+			if(false)
+			{
+				int participants = pop.length - i;
+				parent_a = rankSelection.partial_rouletteWheel(copy_pop, interval, participants);
+				int last_individual = participants - 1;
+				
+				copy_pop[parent_a.index] = copy_pop[last_individual];
+				
+				parent_b = rankSelection.partial_rouletteWheel(copy_pop, interval, participants -1);	
+				last_individual = participants - 2;
+			
+				copy_pop[parent_b.index] = copy_pop[last_individual];
+				
+			}
+			else
+			{
+				int random_a = rnd_.nextInt(pop_size);
+				int random_b = rnd_.nextInt(pop_size);
+				
+				while(random_a == random_b)
+				{
+					random_b = rnd_.nextInt(pop_size);
+				}
+				
+				parent_a = pop[random_a];
+				parent_b = pop[random_b];
+					
+			}
+			
+			if(i ==0) {
+				printInfo(sumFitness, evals_left, pop[0].fitness);
+				System.out.print(" partial ");
+			}	
+		}
+		
+		boolean roulette = !partial;
+		   	
+		if(roulette)
+		{
+			parent_a = fitnessSelection.rouletteWheel(pop, pop.length);
+			parent_b = fitnessSelection.rouletteWheel(pop, pop.length);
+			
+			if(i ==0)
+			{
+				printInfo(sumFitness, evals_left, pop[0].fitness);
+				System.out.print(" roulette ");
+			}
+		}
+		
+		child = arithmeticCrossover.cross_over(parent_a, parent_b);
+		return child;
+	}
+
+	private void diversity_check(Individual[] pop, double sumFitness, PriorityQueue<Individual> sorted_pop,
+			double last_avg_children_ftiness, double epsilon, double avg_children_fitness)
+	{
+		if((Math.abs(last_avg_children_ftiness - avg_children_fitness) < epsilon) && !shock)
+		{
+			if(last_avg_children_ftiness > 0.1)
+			{
+				initPop(pop);
+				evaluate_pop(pop, sorted_pop, sumFitness);
+				System.out.println("Pop Init -------------------------------------------------------------------------------------------------");
+			}
+		}
+	}
+
+	private void survivorSelection(Individual[] pop, IndividualSelection fitnessSelection,
+			SurvivorSelection survivorSelection, Individual[] next_gen)
+	{
+		if(evals_left < evaluations_limit_/10)
+		{
+			int elites = 0;
+			double chanse_to_randomly_choose_individual = 0.98;
+			survivorSelection.stochastic(pop, next_gen, elites, chanse_to_randomly_choose_individual, fitnessSelection);
+		}
+		else
+		{
+			survivorSelection.copy_populations(pop, next_gen);
+		}
 	}
 
 	private void printBestIndivValues(Individual[] pop) {
@@ -447,7 +426,7 @@ public class player72 implements ContestSubmission
 		Individual[] fi = new Individual[size];
 		int counter = 0;
 		
-		while(counter< size)
+		while(counter < size)
 		{
 			
 			fi[counter] = pq.poll();
@@ -465,7 +444,6 @@ public class player72 implements ContestSubmission
 	{
 		double chanse = rnd_.nextDouble();
 		double sign = Utils.getSign();
-		
 		double change = sign * indiv.mutation_steps[dim_to_mutate];
 		
 		if(chanse > 0.5)
@@ -478,7 +456,6 @@ public class player72 implements ContestSubmission
 			{
 				indiv.genome[dim_to_mutate] = Math.min(5, indiv.genome[dim_to_mutate] + change);
 			}
-			
 		}
 	}
 		

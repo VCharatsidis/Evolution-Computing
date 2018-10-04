@@ -1,15 +1,13 @@
-import java.util.Random;
-
 public class Utils {
 	
 	/*
 	 * Sums the values of fitnesses of a pop.
 	 */
-	public static double sumFitness(Individual[] pop)
+	public static double sumFitness(Individual[] pop, int participants)
 	{
 		double sumFitness = 0;
 		
-		for(int i = 0; i < pop.length; i++)
+		for(int i = 0; i < participants; i++)
 		{
 			sumFitness += pop[i].fitness;
 		}
@@ -20,11 +18,11 @@ public class Utils {
 	/*
 	 * Sums the values of ranks of a pop.
 	 */
-	public static int sumRanks(Individual[] pop)
+	public static int sumRanks(Individual[] pop, int participants)
 	{
 		int sumRanks = 0;
 		
-		for(int i = 0; i < pop.length; i++)
+		for(int i = 0; i < participants; i++)
 		{
 			sumRanks += pop[i].rank;
 		}
