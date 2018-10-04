@@ -29,7 +29,7 @@ public class FitnessSelection implements IndividualSelection {
 		
 		double rand = Utils.randomNumber(sumFitness);
 		
-		for(int i = 0; i < pop.length; i++)
+		for(int i = 0; i < participants; i++)
 		{
 			rand -= pop[i].fitness;
 			

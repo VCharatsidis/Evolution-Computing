@@ -12,7 +12,7 @@ public class player72 implements ContestSubmission
 	public static double uper_bound = 5;
 	public static double lower_bound = -5;
 	
-	public static int rank_populations = 2000;
+	public static int rank_populations = 2200;
 	public static int ranks = 1;
 	public static int pop_size = ranks * rank_populations;
 	public static int offsprings = (int)(pop_size * 5);
@@ -74,7 +74,6 @@ public class player72 implements ContestSubmission
        
         double sumFitness = 0;
         double childrenSumFitness = 0;
-;
        
         //int offsprings = 800;
         System.out.println("offsprings "+offsprings);
@@ -125,10 +124,10 @@ public class player72 implements ContestSubmission
         	//MUTATE
         	int individuals_to_mutate = offsprings/10;
         	int dims_to_mutate = 1;
-//        	if(evals_left < evaluations_limit_/10)
-//        	{
-//        		individuals_to_mutate = offsprings/4;
-//        	}
+        	if(evals_left < evaluations_limit_/30)
+        	{
+        		individuals_to_mutate = offsprings/4;
+        	}
         	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
         	sorted_pop.clear();
@@ -190,12 +189,22 @@ public class player72 implements ContestSubmission
 			else
 			{
 				int random_a = rnd_.nextInt(pop_size);
+				while(pop[random_a].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+				{
+					random_a = rnd_.nextInt(pop_size);
+				}
+				
 				int random_b = rnd_.nextInt(pop_size);
+				while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+				{
+					random_b = rnd_.nextInt(pop_size);
+				}
 				
 				while(random_a == random_b)
 				{
 					random_b = rnd_.nextInt(pop_size);
 				}
+				
 				
 				parent_a = pop[random_a];
 				parent_b = pop[random_b];
@@ -240,16 +249,17 @@ public class player72 implements ContestSubmission
 		}
 	}
 
+	//TODO not working properly
 	private void survivorSelection(Individual[] pop, IndividualSelection fitnessSelection,
 			SurvivorSelection survivorSelection, Individual[] next_gen)
 	{
-		if(evals_left < evaluations_limit_/10)
-		{
-			int elites = 0;
-			double chanse_to_randomly_choose_individual = 0.98;
-			survivorSelection.stochastic(pop, next_gen, elites, chanse_to_randomly_choose_individual, fitnessSelection);
-		}
-		else
+//		if(evals_left < evaluations_limit_/100)
+//		{
+//			int elites = 0;
+//			double chanse_to_randomly_choose_individual = 0;
+//			survivorSelection.stochastic(pop, next_gen, elites, chanse_to_randomly_choose_individual, fitnessSelection);
+//		}
+//		else
 		{
 			survivorSelection.copy_populations(pop, next_gen);
 		}
