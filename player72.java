@@ -11,12 +11,13 @@ public class player72 implements ContestSubmission
 {
 	public static double uper_bound = 5;
 	public static double lower_bound = -5;
-	
-	public static int rank_populations = 2200;
-	public static int ranks = 3;
-	public static int pop_size = ranks * rank_populations;
-	public static int offsprings = (int)(pop_size * 3);
 	public static int dimensions = 10;
+	
+	public static int rank_populations;
+	public static int ranks;
+	public static int pop_size;
+	public static int offsprings;
+	
 	public static int evals_left;
 	public static CrossOver crossOver;
 
@@ -81,28 +82,26 @@ public class player72 implements ContestSubmission
 		System.out.println("eval limit "+evaluations_limit_);
 		System.out.println("pop_size "+pop_size);
 		System.out.println("offsprings "+offsprings);
-		Printer printer = new Printer();
+		//Printer printer = new Printer();
 		
         // init population
         Individual[] pop = new Individual[pop_size];
         initPop(pop);
+        PriorityQueue<Individual> sorted_pop = new PriorityQueue<Individual>(new IndividualComparator());
         
         double sumFitness = 0;
         double childrenSumFitness = 0;
        
-        PriorityQueue<Individual> sorted_pop = new PriorityQueue<Individual>(new IndividualComparator());
-        
         evaluate_pop(pop, sorted_pop, sumFitness);
         pop = pq_to_array(sorted_pop, pop_size);
         fill_ranks_on_sorted_pop(pop);
   
-        IndividualSelection fitnessSelection = new FitnessSelection();
-        IndividualSelection rankSelection = new RanksSelection();
+        FitnessSelection fitnessSelection = new FitnessSelection();
+        RanksSelection rankSelection = new RanksSelection();
         SurvivorSelection survivorSelection = new SurvivorSelection();
        
         while(evals_left > 0)
         {
-        	
         	double last_avg_children_ftiness = childrenSumFitness/offsprings;
         	//print(pop);
         	Individual[] next_gen = new Individual[offsprings];
@@ -118,10 +117,10 @@ public class player72 implements ContestSubmission
         	sumFitness = Utils.sumFitness(pop, pop.length);
         	
         	//REPRODUCTION
-        	reproduction(pop, sumFitness, fitnessSelection, rankSelection, crossOver, next_gen);	
+        	reproduction(pop, next_gen, sumFitness, fitnessSelection, rankSelection, crossOver);	
 
         	//MUTATE
-        	int individuals_to_mutate = offsprings/10;
+        	int individuals_to_mutate = offsprings/20;
         	int dims_to_mutate = 1;
         	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
@@ -144,15 +143,81 @@ public class player72 implements ContestSubmission
     		diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, childrenSumFitness);
         }  
 	}
-
-	private void reproduction(Individual[] pop, double sumFitness, IndividualSelection fitnessSelection,
-			IndividualSelection rankSelection, CrossOver arithmeticCrossover, Individual[] next_gen) 
+	
+	private void reproduction(Individual[] pop, Individual[] next_gen, double sumFitness, FitnessSelection fitnessSelection, RanksSelection rankSelection, CrossOver crossOver)
 	{
+		randomReproduction(pop, next_gen, crossOver, offsprings, sumFitness);
+	}
+	
+	private void randomReproduction(Individual[] pop, Individual[] next_gen, CrossOver crossOver, int offsprings, double sumFitness)
+	{
+		System.out.println(" random reproduction ");
+		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
+		
+		for(int i = 0; i < offsprings; i++)
+    	{
+			Individual child = new Individual();
+			
+			Individual parent_a = new Individual();
+			Individual parent_b = new Individual();
+			
+			int random_a = rnd_.nextInt(pop.length);
+			
+			int random_b = rnd_.nextInt(pop.length);
+			
+			while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+			{
+				random_b = rnd_.nextInt(pop_size);
+			}
+			
+			while(random_a == random_b)
+			{
+				random_b = rnd_.nextInt(pop_size);
+			}
+			
+			parent_a = pop[random_a];
+			parent_b = pop[random_b];
+			
+			//randomParentSelection(pop, parent_a, parent_b);	
+			
+			child = crossOver.cross_over(parent_a, parent_b);
+			next_gen[i] = child;
+    	}
+		
+	}
+	
+	private void rank_partial_roulette_with_No_replacement_reproduction(
+			Individual[] pop, RanksSelection rankSelection, Individual[] next_gen, int offsprings)
+	{
+		System.out.print(" partial no replacement ");
 		Individual[] copy_pop = new Individual[pop_size];
-//    	for(int j  = 0; j < pop_size; j++)
-//    	{
-//    		copy_pop[j] = new Individual(pop[j]);
-//    	}
+		
+    	for(int j  = 0; j < pop_size; j++)
+    	{
+    		copy_pop[j] = new Individual(pop[j]);
+    	}
+    	
+		for(int i = 0; i < offsprings; i++)
+    	{
+			Individual child = new Individual();
+			
+			Individual parent_a = new Individual();
+			Individual parent_b = new Individual();
+			
+			rankParentSelection_NoReplacement(copy_pop, i, parent_a, parent_b, rankSelection);
+			
+			child = crossOver.cross_over(parent_a, parent_b);
+			next_gen[i] = child;
+    	}
+	}
+
+	private void rank_rouletteWheel_reproduction(Individual[] pop, double sumFitness, FitnessSelection fitnessSelection,
+			RanksSelection rankSelection, CrossOver arithmeticCrossover, Individual[] next_gen, int offsprings) 
+	{
+	
+		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
+		System.out.print(" roulette ");
+		
 
 		for(int i = 0; i < offsprings; i++)
     	{
@@ -161,78 +226,54 @@ public class player72 implements ContestSubmission
 			Individual parent_a = new Individual();
 			Individual parent_b = new Individual();
 			
-			//boolean partial = (i < (offsprings/3));
-			boolean partial = true;
-	         
-			if(partial) {
-				//Partial wheel
-				int interval = 2;
-			
-				//if(true)
-				// Parent selection with no replacement
-				if(false)
-				{
-					int participants = pop.length - i;
-					parent_a = rankSelection.partial_rouletteWheel(copy_pop, interval, participants);
-					int last_individual = participants - 1;
-					
-					copy_pop[parent_a.index] = copy_pop[last_individual];
-					
-					parent_b = rankSelection.partial_rouletteWheel(copy_pop, interval, participants -1);	
-					last_individual = participants - 2;
-				
-					copy_pop[parent_b.index] = copy_pop[last_individual];
-					
-				}
-				else
-				{
-					int random_a = rnd_.nextInt(pop_size);
-	//				while(pop[random_a].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
-	//				{
-	//					random_a = rnd_.nextInt(pop_size);
-	//				}
-					
-					int random_b = rnd_.nextInt(pop_size);
-					while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
-					{
-						random_b = rnd_.nextInt(pop_size);
-					}
-					
-					while(random_a == random_b)
-					{
-						random_b = rnd_.nextInt(pop_size);
-					}
-					
-					parent_a = pop[random_a];
-					parent_b = pop[random_b];
-						
-				}
-				
-				if(i == 0) {
-					printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
-					System.out.print(" partial ");
-				}	
-				
-			}
-			
-			boolean roulette = !partial;
-			   	
-			if(roulette)
-			{
-				parent_a = rankSelection.rouletteWheel(pop, pop.length);
-				parent_b = rankSelection.rouletteWheel(pop, pop.length);
-				
-				if(i ==0)
-				{
-					printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
-					System.out.print(" roulette ");
-				}
-			}
+			rankRouletteWheel(parent_a, parent_b, rankSelection,pop);
 			
 			child = arithmeticCrossover.cross_over(parent_a, parent_b);
 			next_gen[i] = child;
     	}
+	}
+	
+	public void rankParentSelection_NoReplacement(Individual[] copy_pop, int i, Individual parent_a, Individual parent_b, RanksSelection rankSelection )
+	{
+		int interval = 2;
+		int participants = copy_pop.length - i;
+		parent_a = rankSelection.partial_rouletteWheel(copy_pop, interval, participants);
+		int last_individual = participants - 1;
 		
+		copy_pop[parent_a.index] = copy_pop[last_individual];
+		
+		parent_b = rankSelection.partial_rouletteWheel(copy_pop, interval, participants -1);	
+		last_individual = participants - 2;
+	
+		copy_pop[parent_b.index] = copy_pop[last_individual];
+	}
+	
+	public void randomParentSelection(Individual[] pop, Individual parent_a, Individual parent_b)
+	{
+		
+		int random_a = rnd_.nextInt(pop.length);
+		
+		int random_b = rnd_.nextInt(pop.length);
+		
+//		while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+//		{
+//			random_b = rnd_.nextInt(pop_size);
+//		}
+//		
+//		while(random_a == random_b)
+//		{
+//			random_b = rnd_.nextInt(pop_size);
+//		}
+		
+		parent_a = pop[random_a];
+		parent_b = pop[random_b];
+	}
+	
+	public void rankRouletteWheel(Individual parent_a, Individual parent_b, RanksSelection rankSelection, Individual[] pop)
+	{
+		parent_a = rankSelection.rouletteWheel(pop, pop.length);
+		parent_b = rankSelection.rouletteWheel(pop, pop.length);
+			
 	}
 	
 
