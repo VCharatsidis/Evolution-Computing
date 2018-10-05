@@ -18,15 +18,18 @@ public class player72 implements ContestSubmission
 	public static int offsprings = (int)(pop_size * 5);
 	public static int dimensions = 10;
 	public static int evals_left;
+	public static CrossOver crossOver;
 
 	private boolean shock = false;
 	public static Random rnd_;
+	public Printer printer;
 	
 	ContestEvaluation evaluation_;
     private int evaluations_limit_;
 	
 	public player72()
 	{
+		printer = new Printer();
 		dimensions = 10;
 		rnd_ = new Random();
 	}
@@ -56,6 +59,11 @@ public class player72 implements ContestSubmission
 		// Do sth with property values, e.g. specify relevant settings of your algorithm
         if(isMultimodal){
             // Do sth
+        	rank_populations = 2200;
+        	ranks = 1;
+        	pop_size = ranks * rank_populations;
+        	offsprings = (int)(pop_size * 5);
+        	crossOver = new ArithmeticCrossOver();
         }else{
             // Do sth else
         }
@@ -63,6 +71,13 @@ public class player72 implements ContestSubmission
     
 	public void run()
 	{
+		System.out.println("Katsuura");
+		Katsuura();
+	}
+	
+	private void Katsuura()
+	{
+		Printer printer = new Printer();
 		// Run your algorithm here
 		System.out.println("eval limit "+evaluations_limit_);
 		
@@ -87,7 +102,6 @@ public class player72 implements ContestSubmission
   
         IndividualSelection fitnessSelection = new FitnessSelection();
         IndividualSelection rankSelection = new RanksSelection();
-        ArithmeticCrossOver arithmeticCrossover = new ArithmeticCrossOver();
         SurvivorSelection survivorSelection = new SurvivorSelection();
        
         while(evals_left > 0)
@@ -100,22 +114,22 @@ public class player72 implements ContestSubmission
         	//print(pop);
         	if(evals_left == 1)
     		{
-        		printFitnesses(pop, 1);
-        		printRanks(pop, 1);
-        		printInfo(sumFitness, evals_left, pop[0].fitness);
+        		printer.printFitnesses(pop, 1, rank_populations);
+        		printer.printRanks(pop, 1);
+        		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
     		}
         	
         	sumFitness = Utils.sumFitness(pop, pop.length);
     		
     		Individual[] copy_pop = new Individual[pop_size];
-//        	for(int j  = 0; j < pop_size; j++)
-//        	{
-//        		copy_pop[j] = new Individual(pop[j]);
-//        	}
+//		        	for(int j  = 0; j < pop_size; j++)
+//		        	{
+//		        		copy_pop[j] = new Individual(pop[j]);
+//		        	}
         	
         	for(int i = 0; i < offsprings; i++)
         	{
-        		Individual child = produce_child(pop, sumFitness, fitnessSelection, rankSelection, arithmeticCrossover,
+        		Individual child = produce_child(pop, sumFitness, fitnessSelection, rankSelection, crossOver,
 						copy_pop, i);	
         		//System.out.println("parent a "+parent_a + " parent b "+parent_b);
             	next_gen[i] = child;
@@ -156,7 +170,7 @@ public class player72 implements ContestSubmission
 	}
 
 	private Individual produce_child(Individual[] pop, double sumFitness, IndividualSelection fitnessSelection,
-			IndividualSelection rankSelection, ArithmeticCrossOver arithmeticCrossover, Individual[] copy_pop, int i) 
+			IndividualSelection rankSelection, CrossOver arithmeticCrossover, Individual[] copy_pop, int i) 
 	{
 		Individual child = new Individual();
 		
@@ -189,10 +203,10 @@ public class player72 implements ContestSubmission
 			else
 			{
 				int random_a = rnd_.nextInt(pop_size);
-				while(pop[random_a].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
-				{
-					random_a = rnd_.nextInt(pop_size);
-				}
+//				while(pop[random_a].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+//				{
+//					random_a = rnd_.nextInt(pop_size);
+//				}
 				
 				int random_b = rnd_.nextInt(pop_size);
 				while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
@@ -212,7 +226,7 @@ public class player72 implements ContestSubmission
 			}
 			
 			if(i ==0) {
-				printInfo(sumFitness, evals_left, pop[0].fitness);
+				printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
 				System.out.print(" partial ");
 			}	
 		}
@@ -226,7 +240,7 @@ public class player72 implements ContestSubmission
 			
 			if(i ==0)
 			{
-				printInfo(sumFitness, evals_left, pop[0].fitness);
+				printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
 				System.out.print(" roulette ");
 			}
 		}
@@ -234,6 +248,7 @@ public class player72 implements ContestSubmission
 		child = arithmeticCrossover.cross_over(parent_a, parent_b);
 		return child;
 	}
+	
 
 	private void diversity_check(Individual[] pop, double sumFitness, PriorityQueue<Individual> sorted_pop,
 			double last_avg_children_ftiness, double epsilon, double avg_children_fitness)
@@ -263,23 +278,6 @@ public class player72 implements ContestSubmission
 		{
 			survivorSelection.copy_populations(pop, next_gen);
 		}
-	}
-
-	private void printBestIndivValues(Individual[] pop) {
-		System.out.println();
-		System.out.println("fitness of best indiv"+ pop[0].fitness);
-		
-		for(int dim = 0; dim < 10; dim++)
-		{
-			System.out.print("genome dim "+dim+" "+pop[0].genome[dim]);
-		}
-		
-		for(int dim = 0; dim < 10; dim++)
-		{
-			System.out.print("mutation_step dim "+dim+" "+pop[0].mutation_steps[dim]);
-		}
-		
-		System.out.println();
 	}
 
 	private double define_epsilon(double last_avg_children_ftiness)
@@ -340,26 +338,7 @@ public class player72 implements ContestSubmission
         }
 	}
 
-	private void printRanks(Individual[] pop, int individuals_to_display) 
-	{
-		for(int i = 0; i < individuals_to_display; i++)
-		{
-			System.out.println("indiv "+i+" ranks "+pop[i].rank);
-		}
-	}
-
-	private void printFitnesses(Individual[] pop, int individuals_to_display)
-	{
-		for(int i = 0; i < individuals_to_display; i++)
-		{
-			System.out.println("indiv "+i+" fitness "+pop[i].fitness);
-		}
-		
-		System.out.println();
-		
-		System.out.println("pop_size "+pop_size+" num_indiv_per_rank "+rank_populations);
-	}
-
+	
 	private void MutateChildren(Individual[] next_gen, int number_individuals_to_mutate, int number_dims_to_mutate) 
 	{
 		ArrayList<Integer> list_of_dimensions = new ArrayList<Integer>();
@@ -405,31 +384,7 @@ public class player72 implements ContestSubmission
 			pop[individual] = new Individual(uper_bound, lower_bound, upper_mutation_step_bound, lower_mutation_step_bound);
         }
 	}
-	
-	private void printInfo( double sumFitness, int evals_left, double fitness)
-	{
-		System.out.println();
-		System.out.println(" avg fitness : "+(sumFitness/pop_size) +" best indiv : "+fitness+" evals left "+evals_left);
-		System.out.println();
-	}
 
-	
-	private void printPop(Individual[] pop)
-	{
-		for(int i = 0; i < pop.length; i++)
-		{
-		    System.out.println();
-		    System.out.println("indiv "+i+" dims: ");
-		    
-			for(int dim = 0; dim < dimensions; dim++) 
-			{
-				System.out.print(pop[i].genome[dim] + " , ");
-			}
-			
-			System.out.println();
-		}
-	}
-	
 	public Individual[] pq_to_array(PriorityQueue<Individual> pq)
 	{
 		int size = pq.size();
@@ -437,13 +392,8 @@ public class player72 implements ContestSubmission
 		int counter = 0;
 		
 		while(counter < size)
-		{
-			
-			fi[counter] = pq.poll();
-//			if(counter < 100) {
-//				//System.out.println("index "+ fi[counter].index +" fitness "+fi[counter].fitness);
-//			}
-				
+		{	
+			fi[counter] = pq.poll();				
 			counter++;
 		}
 		

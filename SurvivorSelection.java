@@ -13,16 +13,20 @@ public class SurvivorSelection
 		for(int i = 0; i < pop_size; i++)
 		{
 			int participants = next_gen.length-i;
+			boolean randomly_chosen_indiv = (player72.rnd_.nextDouble() > randomly_chosen_individual);
 			
 			// Elitism.
 			if(i < elites) 
 			{
 				chosen_individual = i;
 			}
-			else
+			if(randomly_chosen_indiv)
 			{
-				boolean randomly_chosen_indiv = (player72.rnd_.nextDouble() > randomly_chosen_individual);
-				chosen_individual = choose_individual(next_gen, individual_selection, randomly_chosen_indiv, participants);
+				chosen_individual = player72.rnd_.nextInt(participants);
+			}
+			else 
+			{
+				chosen_individual = individual_selection.rouletteWheel(next_gen, participants).index;
 			}
 			
 			pop[i] = new Individual(next_gen[chosen_individual]);
@@ -32,23 +36,6 @@ public class SurvivorSelection
 			next_gen[i] = next_gen[participants - 1];
 		}
 		//copy_populations(pop, temp);
-	}
-
-	private int choose_individual(Individual[] next_gen, IndividualSelection individual_selection, boolean randomly_chosen_indiv, int participants) 
-	{
-		int indiv = 0;
-		
-		// 2% of individuals are chosen by chanse.
-		if(randomly_chosen_indiv)
-		{
-			indiv = player72.rnd_.nextInt(participants);
-		}
-		else 
-		{
-			indiv = individual_selection.rouletteWheel(next_gen, participants).index;
-		}
-		
-		return indiv;
 	}
 	
 	public void copy_populations(Individual[] pop, Individual[] temp)
