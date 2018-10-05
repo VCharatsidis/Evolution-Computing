@@ -13,9 +13,9 @@ public class player72 implements ContestSubmission
 	public static double lower_bound = -5;
 	
 	public static int rank_populations = 2200;
-	public static int ranks = 1;
+	public static int ranks = 3;
 	public static int pop_size = ranks * rank_populations;
-	public static int offsprings = (int)(pop_size * 5);
+	public static int offsprings = (int)(pop_size * 3);
 	public static int dimensions = 10;
 	public static int evals_left;
 	public static CrossOver crossOver;
@@ -71,34 +71,30 @@ public class player72 implements ContestSubmission
     
 	public void run()
 	{
-		System.out.println("Katsuura");
+		
 		Katsuura();
 	}
 	
 	private void Katsuura()
 	{
-		Printer printer = new Printer();
-		// Run your algorithm here
+		System.out.println("Katsuura");
 		System.out.println("eval limit "+evaluations_limit_);
+		System.out.println("pop_size "+pop_size);
+		System.out.println("offsprings "+offsprings);
+		Printer printer = new Printer();
 		
         // init population
         Individual[] pop = new Individual[pop_size];
         initPop(pop);
         
-        // calculate fitness
-       
         double sumFitness = 0;
         double childrenSumFitness = 0;
        
-        //int offsprings = 800;
-        System.out.println("offsprings "+offsprings);
-        
         PriorityQueue<Individual> sorted_pop = new PriorityQueue<Individual>(new IndividualComparator());
-        evaluate_pop(pop, sorted_pop, sumFitness);
         
-        pop = pq_to_array(sorted_pop);
-    	
-        fill_ranks(pop);
+        evaluate_pop(pop, sorted_pop, sumFitness);
+        pop = pq_to_array(sorted_pop, pop_size);
+        fill_ranks_on_sorted_pop(pop);
   
         IndividualSelection fitnessSelection = new FitnessSelection();
         IndividualSelection rankSelection = new RanksSelection();
@@ -120,28 +116,13 @@ public class player72 implements ContestSubmission
     		}
         	
         	sumFitness = Utils.sumFitness(pop, pop.length);
-    		
-    		Individual[] copy_pop = new Individual[pop_size];
-//		        	for(int j  = 0; j < pop_size; j++)
-//		        	{
-//		        		copy_pop[j] = new Individual(pop[j]);
-//		        	}
         	
-        	for(int i = 0; i < offsprings; i++)
-        	{
-        		Individual child = produce_child(pop, sumFitness, fitnessSelection, rankSelection, crossOver,
-						copy_pop, i);	
-        		//System.out.println("parent a "+parent_a + " parent b "+parent_b);
-            	next_gen[i] = child;
-        	}
-        	
+        	//REPRODUCTION
+        	reproduction(pop, sumFitness, fitnessSelection, rankSelection, crossOver, next_gen);	
+
         	//MUTATE
         	int individuals_to_mutate = offsprings/10;
         	int dims_to_mutate = 1;
-        	if(evals_left < evaluations_limit_/30)
-        	{
-        		individuals_to_mutate = offsprings/4;
-        	}
         	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
         	sorted_pop.clear();
@@ -151,108 +132,118 @@ public class player72 implements ContestSubmission
                 sorted_pop.add(pop[indiv]);
             }
             
-            childrenSumFitness = 0;
-            
+        	//CHILDREN EVALUATION
+        	childrenSumFitness = 0;
             evaluate_pop(next_gen, sorted_pop, childrenSumFitness);
     		
-        	next_gen = pq_to_array(sorted_pop);
-        	fill_ranks(next_gen);
+            //SURVIVOR SELECTION
+            pop = pq_to_array(sorted_pop, pop.length);
+            fill_ranks_on_sorted_pop(pop);
         	
-        	survivorSelection(pop, fitnessSelection, survivorSelection, next_gen);
-        	
-        	// Defines epsilon given how small is the average fitness
-        	double epsilon = define_epsilon(last_avg_children_ftiness);
-        	double avg_children_fitness = childrenSumFitness/offsprings;
-        	
-    		diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, epsilon, avg_children_fitness);
-        
+            //DIVERSITY CHECK
+    		diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, childrenSumFitness);
         }  
 	}
 
-	private Individual produce_child(Individual[] pop, double sumFitness, IndividualSelection fitnessSelection,
-			IndividualSelection rankSelection, CrossOver arithmeticCrossover, Individual[] copy_pop, int i) 
+	private void reproduction(Individual[] pop, double sumFitness, IndividualSelection fitnessSelection,
+			IndividualSelection rankSelection, CrossOver arithmeticCrossover, Individual[] next_gen) 
 	{
-		Individual child = new Individual();
-		
-		Individual parent_a = new Individual();
-		Individual parent_b = new Individual();
-		
-		//boolean partial = (runs <= total_runs || runs % 20 ==0);
-		boolean partial = true;
-         
-		if(partial) {
-			//Partial wheel
-			int interval = 2;
-		
-			//if(true)
-			// Parent selection with no replacement
-			if(false)
-			{
-				int participants = pop.length - i;
-				parent_a = rankSelection.partial_rouletteWheel(copy_pop, interval, participants);
-				int last_individual = participants - 1;
-				
-				copy_pop[parent_a.index] = copy_pop[last_individual];
-				
-				parent_b = rankSelection.partial_rouletteWheel(copy_pop, interval, participants -1);	
-				last_individual = participants - 2;
+		Individual[] copy_pop = new Individual[pop_size];
+//    	for(int j  = 0; j < pop_size; j++)
+//    	{
+//    		copy_pop[j] = new Individual(pop[j]);
+//    	}
+
+		for(int i = 0; i < offsprings; i++)
+    	{
+			Individual child = new Individual();
 			
-				copy_pop[parent_b.index] = copy_pop[last_individual];
-				
-			}
-			else
-			{
-				int random_a = rnd_.nextInt(pop_size);
-//				while(pop[random_a].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
-//				{
-//					random_a = rnd_.nextInt(pop_size);
-//				}
-				
-				int random_b = rnd_.nextInt(pop_size);
-				while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+			Individual parent_a = new Individual();
+			Individual parent_b = new Individual();
+			
+			//boolean partial = (i < (offsprings/3));
+			boolean partial = true;
+	         
+			if(partial) {
+				//Partial wheel
+				int interval = 2;
+			
+				//if(true)
+				// Parent selection with no replacement
+				if(false)
 				{
-					random_b = rnd_.nextInt(pop_size);
-				}
-				
-				while(random_a == random_b)
-				{
-					random_b = rnd_.nextInt(pop_size);
-				}
-				
-				
-				parent_a = pop[random_a];
-				parent_b = pop[random_b];
+					int participants = pop.length - i;
+					parent_a = rankSelection.partial_rouletteWheel(copy_pop, interval, participants);
+					int last_individual = participants - 1;
 					
+					copy_pop[parent_a.index] = copy_pop[last_individual];
+					
+					parent_b = rankSelection.partial_rouletteWheel(copy_pop, interval, participants -1);	
+					last_individual = participants - 2;
+				
+					copy_pop[parent_b.index] = copy_pop[last_individual];
+					
+				}
+				else
+				{
+					int random_a = rnd_.nextInt(pop_size);
+	//				while(pop[random_a].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+	//				{
+	//					random_a = rnd_.nextInt(pop_size);
+	//				}
+					
+					int random_b = rnd_.nextInt(pop_size);
+					while(pop[random_b].fitness > 0.5 && (evals_left > (evaluations_limit_/2)))
+					{
+						random_b = rnd_.nextInt(pop_size);
+					}
+					
+					while(random_a == random_b)
+					{
+						random_b = rnd_.nextInt(pop_size);
+					}
+					
+					parent_a = pop[random_a];
+					parent_b = pop[random_b];
+						
+				}
+				
+				if(i == 0) {
+					printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
+					System.out.print(" partial ");
+				}	
+				
 			}
 			
-			if(i ==0) {
-				printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
-				System.out.print(" partial ");
-			}	
-		}
-		
-		boolean roulette = !partial;
-		   	
-		if(roulette)
-		{
-			parent_a = fitnessSelection.rouletteWheel(pop, pop.length);
-			parent_b = fitnessSelection.rouletteWheel(pop, pop.length);
-			
-			if(i ==0)
+			boolean roulette = !partial;
+			   	
+			if(roulette)
 			{
-				printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
-				System.out.print(" roulette ");
+				parent_a = rankSelection.rouletteWheel(pop, pop.length);
+				parent_b = rankSelection.rouletteWheel(pop, pop.length);
+				
+				if(i ==0)
+				{
+					printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
+					System.out.print(" roulette ");
+				}
 			}
-		}
+			
+			child = arithmeticCrossover.cross_over(parent_a, parent_b);
+			next_gen[i] = child;
+    	}
 		
-		child = arithmeticCrossover.cross_over(parent_a, parent_b);
-		return child;
 	}
 	
 
 	private void diversity_check(Individual[] pop, double sumFitness, PriorityQueue<Individual> sorted_pop,
-			double last_avg_children_ftiness, double epsilon, double avg_children_fitness)
+			double last_avg_children_ftiness, double childrenSumFitness)
 	{
+		// Defines epsilon given how small is the average fitness
+    	double epsilon = define_epsilon(last_avg_children_ftiness);
+    	double avg_children_fitness = childrenSumFitness/offsprings;
+    	
+		sorted_pop.clear();
 		if((Math.abs(last_avg_children_ftiness - avg_children_fitness) < epsilon) && !shock)
 		{
 			if(last_avg_children_ftiness > 0.1)
@@ -266,8 +257,10 @@ public class player72 implements ContestSubmission
 
 	//TODO not working properly
 	private void survivorSelection(Individual[] pop, IndividualSelection fitnessSelection,
-			SurvivorSelection survivorSelection, Individual[] next_gen)
+			SurvivorSelection survivorSelection, Individual[] next_gen, PriorityQueue<Individual> sorted_pop)
 	{
+//		next_gen = pq_to_array(sorted_pop);
+//		fill_ranks_on_sorted_pop(next_gen);
 //		if(evals_left < evaluations_limit_/100)
 //		{
 //			int elites = 0;
@@ -275,9 +268,10 @@ public class player72 implements ContestSubmission
 //			survivorSelection.stochastic(pop, next_gen, elites, chanse_to_randomly_choose_individual, fitnessSelection);
 //		}
 //		else
-		{
-			survivorSelection.copy_populations(pop, next_gen);
-		}
+//		{
+			pop = pq_to_array(sorted_pop, pop.length);
+			//survivorSelection.copy_populations(pop, next_gen);
+//		}
 	}
 
 	private double define_epsilon(double last_avg_children_ftiness)
@@ -313,8 +307,9 @@ public class player72 implements ContestSubmission
 	
 	/*
 	 * This method fills the individuals of the population with their corresponding rank.
+	 * Pop must be sorted.
 	 */
-	private void fill_ranks(Individual[] pop) 
+	private void fill_ranks_on_sorted_pop(Individual[] pop) 
 	{
 		for(int i = 0; i < pop.length; i++)
 		{
@@ -385,9 +380,8 @@ public class player72 implements ContestSubmission
         }
 	}
 
-	public Individual[] pq_to_array(PriorityQueue<Individual> pq)
+	public Individual[] pq_to_array(PriorityQueue<Individual> pq, int size)
 	{
-		int size = pq.size();
 		Individual[] fi = new Individual[size];
 		int counter = 0;
 		
