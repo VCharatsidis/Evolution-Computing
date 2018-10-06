@@ -1,6 +1,6 @@
 import java.util.Random;
 
-public class UniformCrossOver {
+public class UniformCrossOver implements CrossOver{
 	
 	private int dimensions = player72.dimensions;	
 	
