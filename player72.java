@@ -59,10 +59,10 @@ public class player72 implements ContestSubmission
 		// Do sth with property values, e.g. specify relevant settings of your algorithm
         if(isMultimodal){
             // Do sth
-        	rank_populations = 1800;
+        	rank_populations = 2200;
         	ranks = 1;
         	pop_size = ranks * rank_populations;
-        	offsprings = (int)(pop_size * 5);
+        	offsprings = (int)(pop_size * 4);
         	
         }else{
             // Do sth else
@@ -77,7 +77,7 @@ public class player72 implements ContestSubmission
 	
 	private void Katsuura()
 	{
-		int individuals_to_mutate = offsprings/5;
+		int individuals_to_mutate = (int)((double)offsprings/4);
 		
 		System.out.println("Katsuura");
 		System.out.println("eval limit "+evaluations_limit_);
@@ -87,8 +87,8 @@ public class player72 implements ContestSubmission
 		System.out.println("mutation rate "+ ((double)individuals_to_mutate / (double)offsprings));
 		
 		//FITNESS SHARING SIGMA
-		boolean fitness_sharing = false;
-		double sigma = 0.2;
+		boolean fitness_sharing = true;
+		double sigma = 10;
 		
 		if(fitness_sharing)
 		{
@@ -120,8 +120,25 @@ public class player72 implements ContestSubmission
         	double last_avg_children_ftiness = childrenSumFitness/offsprings;
         	//print(pop);
         	Individual[] next_gen = new Individual[offsprings];
-        
+            
         	sumFitness = Utils.sumFitness(pop, pop.length);
+        	
+        	double[] sh = new double[pop_size];
+        	
+        	//FITNESS SHARING
+        	if(fitness_sharing)
+        	{
+            	sh_values(sh, pop, next_gen, sigma);
+            	
+//            	for(int i  = 0; i <10000;i++) {
+//            		System.out.println(sh[0]);
+//            	}
+            	
+            	for(int indiv = 0; indiv < pop_size; indiv++)
+            	{
+            		pop[indiv].fitness = pop[indiv].fitness / (1 + sh[indiv]);
+                }
+        	}
         	
         	//REPRODUCTION
         	double chanse = rnd_.nextDouble();
@@ -136,45 +153,13 @@ public class player72 implements ContestSubmission
         		reproduction(pop, next_gen, sumFitness, fitnessSelection, rankSelection, arithmeticCrossOver);
         	}
         		
-
         	//MUTATE
         	int dims_to_mutate = 1;
         	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
         	sorted_pop.clear();
-        	
-        	if(fitness_sharing)
-        	{
-        		//FITNESS SHARING
-            	double[] sh = new double[pop_size + offsprings];
-            	sh_values(sh, pop, next_gen, sigma);
-            	
-//            	for(int i  = 0; i <10000;i++) {
-//            		System.out.println(sh[0]);
-//            	}
-            	
-            	for(int indiv = 0; indiv < pop_size; indiv++)
-            	{
-            		pop[indiv].fitness = pop[indiv].fitness / (1 + sh[indiv]);
-            		
-            		Individual individual = new Individual(pop[indiv]);
-                    sorted_pop.add(individual);
-                }
-            	
-    			for(int j = 0; j < next_gen.length; j ++)
-    			{
-    				next_gen[j].fitness = next_gen[j].fitness / (1 + sh[j + pop.length]);
-    			}
-        	}
-        	else
-        	{
-        		for(int indiv = 0; indiv < pop_size; indiv++)
-            	{
-            		Individual individual = new Individual(pop[indiv]);
-            		sorted_pop.add(individual);
-            	}
-        	}
-        
+        	fill_sorted_pop(fitness_sharing, pop, sorted_pop, sh);
+    		
         	//CHILDREN EVALUATION
         	childrenSumFitness = 0;
             evaluate_pop(next_gen, sorted_pop, childrenSumFitness);
@@ -186,6 +171,21 @@ public class player72 implements ContestSubmission
             //DIVERSITY CHECK
     		diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, childrenSumFitness);
         }  
+	}
+
+	private void fill_sorted_pop(boolean fitness_sharing, Individual[] pop, PriorityQueue<Individual> sorted_pop,
+			double[] sh) {
+		for(int indiv = 0; indiv < pop_size; indiv++)
+		{
+			// restore fitness for survivor selection.
+			if(fitness_sharing)
+			{
+				pop[indiv].fitness = pop[indiv].fitness * (1 + sh[indiv]);
+			}
+			
+			Individual individual = new Individual(pop[indiv]);
+			sorted_pop.add(individual);
+		}
 	}
 	
 	/*
@@ -200,25 +200,24 @@ public class player72 implements ContestSubmission
 				calculate_sh(pop[i], pop[j], i, j, sh, sigma);
 			}
 			
-			for(int j = 0; j < next_gen.length; j ++)
-			{
-				calculate_sh(pop[i], next_gen[j], i, j + pop.length, sh, sigma);
-			}
+//			for(int j = 0; j < next_gen.length; j ++)
+//			{
+//				calculate_sh(pop[i], next_gen[j], i, j + pop.length, sh, sigma);
+//			}
 		}
 		
-		for(int i = 0; i < next_gen.length; i ++)
-		{
-			for(int j = i + 1; j < next_gen.length; j ++)
-			{
-				calculate_sh(next_gen[i], next_gen[j], i + pop.length, j + pop.length, sh, sigma);
-			}
-		}
+//		for(int i = 0; i < next_gen.length; i ++)
+//		{
+//			for(int j = i + 1; j < next_gen.length; j ++)
+//			{
+//				calculate_sh(next_gen[i], next_gen[j], i + pop.length, j + pop.length, sh, sigma);
+//			}
+//		}
 	}
 	
 	private void calculate_sh(Individual a, Individual b, int index_a, int index_b, double[] sh, double sigma)
 	{
 		double total_distance = 0;
-		
 		
 		for(int dim = 0; dim < dimensions; dim++)
 		{
@@ -236,7 +235,6 @@ public class player72 implements ContestSubmission
 			}	
 		}
 		
-		
 		double sh_value = 1 - total_distance/sigma;
 		sh_value = Math.max(sh_value, 0);
 		//System.out.println(" td "+total_distance+" index a "+index_a+" index b "+index_b + " sh_value "+sh_value) ;
@@ -247,12 +245,41 @@ public class player72 implements ContestSubmission
 	
 	private void reproduction(Individual[] pop, Individual[] next_gen, double sumFitness, FitnessSelection fitnessSelection, RanksSelection rankSelection, CrossOver crossOver)
 	{
-		randomReproduction(pop, next_gen, crossOver, offsprings, sumFitness);
+		//randomReproduction(pop, next_gen, crossOver, offsprings, sumFitness);
+		fitness_rouletteWheel_reproduction(pop, next_gen, crossOver, offsprings, sumFitness, fitnessSelection);
+	}
+	
+	private void fitness_rouletteWheel_reproduction(Individual[] pop, Individual[] next_gen, CrossOver crossOver, int offsprings, double sumFitness, FitnessSelection fitnessSelection )
+	{
+		System.out.println("fitness roulette Wheel ");
+		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
+		
+		for(int i = 0; i < offsprings; i++)
+    	{
+			Individual[] indivs = rouletteWheel_fitness_parentSelection(pop, fitnessSelection);
+			
+			next_gen[i] = crossOver.cross_over(indivs[0], indivs[1]);
+			//System.out.println(next_gen[i].genome[0] +" "+ next_gen[i].genome[9]);
+    	}
+	}
+	
+	private Individual[] rouletteWheel_fitness_parentSelection(Individual[] pop, FitnessSelection fitnessSelection)
+	{
+		Individual parent_a = fitnessSelection.partial_rouletteWheel(pop, 2, pop.length);
+		Individual parent_b = fitnessSelection.partial_rouletteWheel(pop, 2, pop.length);
+		
+		while( parent_a.index == parent_b.index)
+		{
+			parent_b = fitnessSelection.partial_rouletteWheel(pop, 2, pop.length);
+		}
+		
+		Individual[] idnivs = {parent_a, parent_b};
+		return idnivs;
 	}
 	
 	private void randomReproduction(Individual[] pop, Individual[] next_gen, CrossOver crossOver, int offsprings, double sumFitness)
 	{
-		System.out.println(" random reproduction ");
+		System.out.println("random reproduction ");
 		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
 		
 		for(int i = 0; i < offsprings; i++)
