@@ -48,21 +48,28 @@ public class Printer {
 		System.out.println();
 	}
 	
-	public void printBestIndivValues(Individual[] pop) {
+	public void printBestIndivValues(Individual[] pop, int indivs_to_display) 
+	{
 		System.out.println();
-		System.out.println("fitness of best indiv"+ pop[0].fitness);
-		
-		for(int dim = 0; dim < 10; dim++)
+		for(int i = 0; i < indivs_to_display; i++ )
 		{
-			System.out.print("genome dim "+dim+" "+pop[0].genome[dim]);
+			System.out.println(" indiv "+i);
+			System.out.print("genome ");
+			for(int dim = 0; dim < 10; dim++)
+			{
+				System.out.print("dim "+dim+" "+pop[0].genome[dim]);
+			}
+			
+			System.out.println();
+			System.out.print("mutation steps");
+			for(int dim = 0; dim < 10; dim++)
+			{
+				System.out.print("dim "+dim+" "+pop[0].mutation_steps[dim]);
+			}
+			
+			System.out.println();
 		}
 		
-		for(int dim = 0; dim < 10; dim++)
-		{
-			System.out.print("mutation_step dim "+dim+" "+pop[0].mutation_steps[dim]);
-		}
-		
-		System.out.println();
 	}
 	
 }

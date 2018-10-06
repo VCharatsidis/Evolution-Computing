@@ -59,10 +59,10 @@ public class player72 implements ContestSubmission
 		// Do sth with property values, e.g. specify relevant settings of your algorithm
         if(isMultimodal){
             // Do sth
-        	rank_populations = 2000;
+        	rank_populations = 1800;
         	ranks = 1;
         	pop_size = ranks * rank_populations;
-        	offsprings = (int)(pop_size * 4);
+        	offsprings = (int)(pop_size * 5);
         	
         }else{
             // Do sth else
@@ -77,15 +77,23 @@ public class player72 implements ContestSubmission
 	
 	private void Katsuura()
 	{
+		int individuals_to_mutate = offsprings/5;
+		
 		System.out.println("Katsuura");
 		System.out.println("eval limit "+evaluations_limit_);
 		System.out.println("pop_size "+pop_size);
 		System.out.println("offsprings "+offsprings);
 		System.out.println("arithmeticCrossOver");
+		System.out.println("mutation rate "+ ((double)individuals_to_mutate / (double)offsprings));
 		
 		//FITNESS SHARING SIGMA
-		int sigma = 1;
-		System.out.println("fs sigma " +sigma);
+		boolean fitness_sharing = false;
+		double sigma = 0.2;
+		
+		if(fitness_sharing)
+		{
+			System.out.println("fs sigma " + sigma);
+		}
 		
         // init population
         Individual[] pop = new Individual[pop_size];
@@ -105,6 +113,7 @@ public class player72 implements ContestSubmission
         SurvivorSelection survivorSelection = new SurvivorSelection();
         CrossOver arithmeticCrossOver = new ArithmeticCrossOver();
         CrossOver uniCrossOver = new UniformCrossOver();
+        
        
         while(evals_left > 0)
         {
@@ -112,14 +121,6 @@ public class player72 implements ContestSubmission
         	//print(pop);
         	Individual[] next_gen = new Individual[offsprings];
         
-        	//print(pop);
-        	if(evals_left == 1)
-    		{
-        		printer.printFitnesses(pop, 1, rank_populations);
-        		printer.printRanks(pop, 1);
-        		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
-    		}
-        	
         	sumFitness = Utils.sumFitness(pop, pop.length);
         	
         	//REPRODUCTION
@@ -137,39 +138,43 @@ public class player72 implements ContestSubmission
         		
 
         	//MUTATE
-        	int individuals_to_mutate = offsprings/20;
         	int dims_to_mutate = 1;
         	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
         	sorted_pop.clear();
         	
-        	for(int indiv = 0; indiv < pop_size; indiv++)
+        	if(fitness_sharing)
         	{
-        		Individual individual = new Individual(pop[indiv]);
-        		sorted_pop.add(individual);
+        		//FITNESS SHARING
+            	double[] sh = new double[pop_size + offsprings];
+            	sh_values(sh, pop, next_gen, sigma);
+            	
+//            	for(int i  = 0; i <10000;i++) {
+//            		System.out.println(sh[0]);
+//            	}
+            	
+            	for(int indiv = 0; indiv < pop_size; indiv++)
+            	{
+            		pop[indiv].fitness = pop[indiv].fitness / (1 + sh[indiv]);
+            		
+            		Individual individual = new Individual(pop[indiv]);
+                    sorted_pop.add(individual);
+                }
+            	
+    			for(int j = 0; j < next_gen.length; j ++)
+    			{
+    				next_gen[j].fitness = next_gen[j].fitness / (1 + sh[j + pop.length]);
+    			}
         	}
-        	
-        	//FITNESS SHARING
-//        	double[] sh = new double[pop_size + offsprings];
-//        	sh_values(sh, pop, next_gen, sigma);
-//        	
-////        	for(int i  = 0; i <10000;i++) {
-////        		System.out.println(sh[0]);
-////        	}
-//        	
-//        	for(int indiv = 0; indiv < pop_size; indiv++)
-//        	{
-//        		pop[indiv].fitness = pop[indiv].fitness / (1 + sh[indiv]);
-//        		
-//        		Individual individual = new Individual(pop[indiv]);
-//                sorted_pop.add(individual);
-//            }
-//        	
-//			for(int j = 0; j < next_gen.length; j ++)
-//			{
-//				next_gen[j].fitness = next_gen[j].fitness / (1 + sh[j + pop.length]);
-//			}
-            
+        	else
+        	{
+        		for(int indiv = 0; indiv < pop_size; indiv++)
+            	{
+            		Individual individual = new Individual(pop[indiv]);
+            		sorted_pop.add(individual);
+            	}
+        	}
+        
         	//CHILDREN EVALUATION
         	childrenSumFitness = 0;
             evaluate_pop(next_gen, sorted_pop, childrenSumFitness);
@@ -437,6 +442,14 @@ public class player72 implements ContestSubmission
             
             sumFitness += fitness;
             evals_left--;
+            
+            if(evals_left ==1 )
+    		{
+        		printer.printFitnesses(pop, pop.length, rank_populations);
+        		//printer.printRanks(pop, 1);
+        		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
+        		printer.printBestIndivValues(pop, 100);
+    		}
         }
 	}
 
