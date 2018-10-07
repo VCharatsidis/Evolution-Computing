@@ -60,10 +60,10 @@ public class player72 implements ContestSubmission
 		// Do sth with property values, e.g. specify relevant settings of your algorithm
         if(isMultimodal){
             // Do sth
-        	rank_populations = 100;
+        	rank_populations = 2200;
         	ranks = 1;
         	pop_size = ranks * rank_populations;
-        	offsprings = (int)((double)pop_size * 2);
+        	offsprings = (int)((double)pop_size * 4);
         	
         }else{
             // Do sth else
@@ -118,6 +118,7 @@ public class player72 implements ContestSubmission
         double last_pop_fitness = 0;
         double previous_top_idniv_fitness = 0;
         boolean kill_first = false;
+        double last_best_fitness = 0;
         
         evaluate_pop(pop, sorted_pop, sumFitness);
         pq_to_array(sorted_pop, pop);
@@ -155,8 +156,8 @@ public class player72 implements ContestSubmission
         	}
         		
         	//MUTATE
-//        	int dims_to_mutate = 1;
-//        	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
+        	int dims_to_mutate = 1;
+        	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
         	sorted_pop.clear();
         	fill_sorted_pop(fitness_sharing, pop, sorted_pop, sh);
@@ -171,38 +172,62 @@ public class player72 implements ContestSubmission
             System.out.println("difference "+ Math.abs(sumFitness - last_pop_fitness));
             printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop.length);
             
-//            if((Math.abs(sumFitness - last_pop_fitness) < 20) && sumFitness > (pop[0].fitness * (pop_size/10)))
-//            {
-            boolean noDifference = ((Math.abs(sumFitness - last_pop_fitness) < 2) && (pop[0].fitness > 1) && sumFitness > (pop[0].fitness * (pop_size/10)));
-            boolean pop_degenerated = (sumFitness > (pop[0].fitness * (pop_size/2 + pop_size/6)));
+           
+            double epsilon = define_epsilon(sumFitness);
+            boolean noDifference = ((Math.abs(sumFitness - last_pop_fitness) < epsilon));
+            boolean pop_degenerated = (sumFitness > (pop[0].fitness * (pop_size/2 + pop_size/3)));
             
-        	if(noDifference || pop_degenerated)
-            {
+//        	if(noDifference || pop_degenerated)
+//            {
+             double difference = 80;
+             if(sumFitness < 1000)
+             {
+            	 difference = 8;
+             }
+             if(sumFitness >10000)
+             {
+            	 difference = 800;
+             }
+           
+             double total_distance = 0;
+             for(int i = 0; i < sh.length; i++)
+             {
+            	 total_distance += sh[i];
+             }
+             
+             total_distance /= (pop_size + offsprings);
+             System.out.println("total distance "+total_distance);
+             
+             double best_fitness = pop[0].fitness;
+    		 if((Math.abs(sumFitness - last_pop_fitness) < difference) && sumFitness > (best_fitness * (pop_size/10)) &&
+    				 Math.abs(best_fitness - last_best_fitness) < 0.001)
+             {
             	//System.out.println("childrenSumFitness " + (sumFitness/offsprings));
              	//System.out.println("epsilon "+ (1 - (sumFitness/offsprings)/pop[0].fitness));
             	shock = true;
             	Individual center_indiv = new Individual(pop[0]);
-            	double radious = 0.75;
+            	double radious = 0.5;
             	kill_first = false;
-            	if(Math.abs(center_indiv.fitness - previous_top_idniv_fitness) < 0.01)
+            	epsilon = define_epsilon(center_indiv.fitness);
+            	if(Math.abs(center_indiv.fitness - previous_top_idniv_fitness) < epsilon)
             	{
-            		center_indiv = new Individual(pop[10]);
-            		radious = 0.75;
+            		//center_indiv = new Individual(pop[10]);
+            		radious = 1.5;
             		kill_first = true;
            
             	}
-            	else
-            	{
-            		previous_top_idniv_fitness = center_indiv.fitness;
-            	}
+            	
+            	previous_top_idniv_fitness = center_indiv.fitness;
             	printer.printFitnesses(pop, pop.length, rank_populations);
-            	initPop_around_individual(pop, center_indiv, radious, kill_first);
+            	initPop_around_individual(pop, center_indiv, radious);
+            	
             	sorted_pop.clear();
             	evaluate_pop(pop, sorted_pop, sumFitness);
             	
     			System.out.println("Pop Init -------------------------------------------------------------------------------------");
             }
-            
+    		last_best_fitness = best_fitness;
+    		
         	System.out.println("noDifference "+noDifference);
             System.out.println("pop_degenerated "+pop_degenerated);
             System.out.println("kill first "+kill_first);
@@ -447,7 +472,7 @@ public class player72 implements ContestSubmission
 		{
 			if(last_avg_children_ftiness > 0.1)
 			{
-				initPop_around_individual(pop, center_indiv, 0.75, false);
+				initPop_around_individual(pop, center_indiv, 0.75);
 				evaluate_pop(pop, sorted_pop, sumFitness);
 				System.out.println("Pop Init -------------------------------------------------------------------------------------------------");
 			}
@@ -479,26 +504,26 @@ public class player72 implements ContestSubmission
 		
 		if(last_avg_children_ftiness > 1)
 		{
-			epsilon = 0.1;		
+			epsilon = 0.001;		
 		}
 		else if((last_avg_children_ftiness * 10) > 1)
 		{
-			epsilon = 0.01;
+			epsilon = 0.0001;
 		}
 		else if((last_avg_children_ftiness * 100) > 1)
 		{
-			epsilon = 0.001;
+			epsilon = 0.00001;
 		}
 		else if(last_avg_children_ftiness * 1000 > 1)
 		{
-			epsilon = 0.0001;
+			epsilon = 0.000001;
 		}
 		else if(last_avg_children_ftiness * 10000 > 1)
 		{
-			epsilon = 0.00001;
+			epsilon = 0.0000001;
 		}else if(last_avg_children_ftiness * 100000 > 1)
 		{
-			epsilon = 0.000001;
+			epsilon = 0.00000001;
 		}
 		
 		return epsilon;
@@ -575,19 +600,15 @@ public class player72 implements ContestSubmission
 		}
 	}
 	
-	private void initPop_around_individual(Individual[] pop, Individual center_indiv, double radious, boolean kill_center)
+	private void initPop_around_individual(Individual[] pop, Individual center_indiv, double radious)
 	{
 		System.out.println("Reform pop around best Individual");
 		
 		double upper_mutation_step_bound = 0.25;
 		double lower_mutation_step_bound = 0.05;
 		
-//		int ignore_first = 0;
-//		if(!kill_center)
-//		{
-			pop[0] = new Individual(center_indiv);
-			int ignore_first = 1;
-		//} 
+		pop[0] = new Individual(center_indiv);
+		int ignore_first = 1;
 		
 		for(int individual = ignore_first; individual < pop_size; individual++)
         {	
@@ -595,7 +616,7 @@ public class player72 implements ContestSubmission
 			for(int dim = 0; dim < dimensions; dim++)
 			{
 				double center = center_indiv.genome[dim] ;
-				pop[individual].genome[dim] =  Utils.double_in_range(center+radious, center-radious);
+				pop[individual].genome[dim] =  Utils.double_in_range(Math.min(center+radious, 5), Math.max(-5, center-radious));
 				//pop[individual].mutation_steps[dim] = Utils.double_in_range(upper_mutation_step, lower_mutation_step);
 			}
 			pop[individual].fitness = 0;
