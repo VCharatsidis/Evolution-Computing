@@ -19,6 +19,7 @@ public class player72 implements ContestSubmission
 	public static int offsprings;
 	
 	public static int evals_left;
+	public int infinityProtection = 1;
 
 	private boolean shock = false;
 	public static Random rnd_;
@@ -59,10 +60,10 @@ public class player72 implements ContestSubmission
 		// Do sth with property values, e.g. specify relevant settings of your algorithm
         if(isMultimodal){
             // Do sth
-        	rank_populations = 2200;
+        	rank_populations = 100;
         	ranks = 1;
         	pop_size = ranks * rank_populations;
-        	offsprings = (int)(pop_size * 4);
+        	offsprings = (int)((double)pop_size * 2);
         	
         }else{
             // Do sth else
@@ -77,18 +78,30 @@ public class player72 implements ContestSubmission
 	
 	private void Katsuura()
 	{
-		int individuals_to_mutate = (int)((double)offsprings/4);
+		int individuals_to_mutate = (int)((double)offsprings/15);
 		
+		FitnessSelection fitnessSelection = new FitnessSelection();
+        RanksSelection rankSelection = new RanksSelection();
+        SurvivorSelection survivorSelection = new SurvivorSelection();
+        ArithmeticCrossOver arithmeticCrossOver = new ArithmeticCrossOver();
+        CrossOver uniCrossOver = new UniformCrossOver();
+        
 		System.out.println("Katsuura");
 		System.out.println("eval limit "+evaluations_limit_);
 		System.out.println("pop_size "+pop_size);
 		System.out.println("offsprings "+offsprings);
-		System.out.println("arithmeticCrossOver");
+		System.out.println("arithmeticCrossOver distance "+ arithmeticCrossOver.distance + " genome increment "+arithmeticCrossOver.genome_increment);
 		System.out.println("mutation rate "+ ((double)individuals_to_mutate / (double)offsprings));
+		
 		
 		//FITNESS SHARING SIGMA
 		boolean fitness_sharing = true;
-		double sigma = 10;
+		double sigma = 100;
+		
+		if(sigma == 100)
+		{
+			infinityProtection = 0;
+		}
 		
 		if(fitness_sharing)
 		{
@@ -102,21 +115,18 @@ public class player72 implements ContestSubmission
         
         double sumFitness = 0;
         double childrenSumFitness = 0;
+        double last_pop_fitness = 0;
+        double previous_top_idniv_fitness = 0;
+        boolean kill_first = false;
         
         evaluate_pop(pop, sorted_pop, sumFitness);
         pq_to_array(sorted_pop, pop);
         
         fill_ranks_on_sorted_pop(pop);
   
-        FitnessSelection fitnessSelection = new FitnessSelection();
-        RanksSelection rankSelection = new RanksSelection();
-        SurvivorSelection survivorSelection = new SurvivorSelection();
-        CrossOver arithmeticCrossOver = new ArithmeticCrossOver();
-        CrossOver uniCrossOver = new UniformCrossOver();
-        
-       
         while(evals_left > 0)
         {
+        	
         	double last_avg_children_ftiness = childrenSumFitness/offsprings;
         	//print(pop);
         	Individual[] next_gen = new Individual[offsprings];
@@ -128,21 +138,12 @@ public class player72 implements ContestSubmission
         	//FITNESS SHARING
         	if(fitness_sharing)
         	{
-            	sh_values(sh, pop, next_gen, sigma);
-            	
-//            	for(int i  = 0; i <10000;i++) {
-//            		System.out.println(sh[0]);
-//            	}
-            	
-            	for(int indiv = 0; indiv < pop_size; indiv++)
-            	{
-            		pop[indiv].fitness = pop[indiv].fitness / (1 + sh[indiv]);
-                }
+            	adjust_fitnesses(sigma, pop, next_gen, sh);
         	}
         	
         	//REPRODUCTION
         	double chanse = rnd_.nextDouble();
-        	if(chanse >0.9)
+        	if(chanse > 0.9)
         	{
         		System.out.println("Uniform CrossOver");
         		reproduction(pop, next_gen, sumFitness, fitnessSelection, rankSelection, uniCrossOver);	
@@ -154,8 +155,8 @@ public class player72 implements ContestSubmission
         	}
         		
         	//MUTATE
-        	int dims_to_mutate = 1;
-        	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
+//        	int dims_to_mutate = 1;
+//        	MutateChildren(next_gen, individuals_to_mutate, dims_to_mutate);
         	
         	sorted_pop.clear();
         	fill_sorted_pop(fitness_sharing, pop, sorted_pop, sh);
@@ -163,14 +164,70 @@ public class player72 implements ContestSubmission
         	//CHILDREN EVALUATION
         	childrenSumFitness = 0;
             evaluate_pop(next_gen, sorted_pop, childrenSumFitness);
+          
+            System.out.println("pop[0].fitness "+pop[0].fitness);
+            sumFitness = Utils.sumFitness(pop, pop.length);
+            System.out.println("SumFitness "+sumFitness+" last_pop_fitness "+last_pop_fitness);
+            System.out.println("difference "+ Math.abs(sumFitness - last_pop_fitness));
+            printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop.length);
             
+//            if((Math.abs(sumFitness - last_pop_fitness) < 20) && sumFitness > (pop[0].fitness * (pop_size/10)))
+//            {
+            boolean noDifference = ((Math.abs(sumFitness - last_pop_fitness) < 2) && (pop[0].fitness > 1) && sumFitness > (pop[0].fitness * (pop_size/10)));
+            boolean pop_degenerated = (sumFitness > (pop[0].fitness * (pop_size/2 + pop_size/6)));
+            
+        	if(noDifference || pop_degenerated)
+            {
+            	//System.out.println("childrenSumFitness " + (sumFitness/offsprings));
+             	//System.out.println("epsilon "+ (1 - (sumFitness/offsprings)/pop[0].fitness));
+            	shock = true;
+            	Individual center_indiv = new Individual(pop[0]);
+            	double radious = 0.75;
+            	kill_first = false;
+            	if(Math.abs(center_indiv.fitness - previous_top_idniv_fitness) < 0.01)
+            	{
+            		center_indiv = new Individual(pop[10]);
+            		radious = 0.75;
+            		kill_first = true;
+           
+            	}
+            	else
+            	{
+            		previous_top_idniv_fitness = center_indiv.fitness;
+            	}
+            	printer.printFitnesses(pop, pop.length, rank_populations);
+            	initPop_around_individual(pop, center_indiv, radious, kill_first);
+            	sorted_pop.clear();
+            	evaluate_pop(pop, sorted_pop, sumFitness);
+            	
+    			System.out.println("Pop Init -------------------------------------------------------------------------------------");
+            }
+            
+        	System.out.println("noDifference "+noDifference);
+            System.out.println("pop_degenerated "+pop_degenerated);
+            System.out.println("kill first "+kill_first);
+            System.out.println();
+            last_pop_fitness = sumFitness;
             //SURVIVOR SELECTION
             pq_to_array(sorted_pop, pop);
             //fill_ranks_on_sorted_pop(pop);
-        	
+           
             //DIVERSITY CHECK
-    		diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, childrenSumFitness);
+    		//diversity_check(pop, sumFitness, sorted_pop, last_avg_children_ftiness, childrenSumFitness);
         }  
+	}
+
+	private void adjust_fitnesses(double sigma, Individual[] pop, Individual[] next_gen, double[] sh) {
+		sh_values(sh, pop, next_gen, sigma);
+		
+//            	for(int i  = 0; i <10000;i++) {
+//            		System.out.println(sh[0]);
+//            	}
+		
+		for(int indiv = 0; indiv < pop_size; indiv++)
+		{
+			pop[indiv].fitness = pop[indiv].fitness / (infinityProtection + sh[indiv]);
+		}
 	}
 
 	private void fill_sorted_pop(boolean fitness_sharing, Individual[] pop, PriorityQueue<Individual> sorted_pop,
@@ -180,7 +237,7 @@ public class player72 implements ContestSubmission
 			// restore fitness for survivor selection.
 			if(fitness_sharing)
 			{
-				pop[indiv].fitness = pop[indiv].fitness * (1 + sh[indiv]);
+				pop[indiv].fitness = pop[indiv].fitness * (infinityProtection + sh[indiv]);
 			}
 			
 			Individual individual = new Individual(pop[indiv]);
@@ -252,21 +309,25 @@ public class player72 implements ContestSubmission
 	private void fitness_rouletteWheel_reproduction(Individual[] pop, Individual[] next_gen, CrossOver crossOver, int offsprings, double sumFitness, FitnessSelection fitnessSelection )
 	{
 		System.out.println("fitness roulette Wheel ");
-		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
 		
 		for(int i = 0; i < offsprings; i++)
     	{
-			Individual[] indivs = rouletteWheel_fitness_parentSelection(pop, fitnessSelection);
+			int interval = 2;
+//			if(evals_left < evaluations_limit_/20)
+//			{
+//				interval = pop.length;
+//			}
+			Individual[] indivs = rouletteWheel_fitness_parentSelection(pop, fitnessSelection, interval);
 			
 			next_gen[i] = crossOver.cross_over(indivs[0], indivs[1]);
 			//System.out.println(next_gen[i].genome[0] +" "+ next_gen[i].genome[9]);
     	}
 	}
 	
-	private Individual[] rouletteWheel_fitness_parentSelection(Individual[] pop, FitnessSelection fitnessSelection)
+	private Individual[] rouletteWheel_fitness_parentSelection(Individual[] pop, FitnessSelection fitnessSelection, int interval)
 	{
-		Individual parent_a = fitnessSelection.partial_rouletteWheel(pop, 2, pop.length);
-		Individual parent_b = fitnessSelection.partial_rouletteWheel(pop, 2, pop.length);
+		Individual parent_a = fitnessSelection.partial_rouletteWheel(pop, interval, pop.length);
+		Individual parent_b = fitnessSelection.partial_rouletteWheel(pop, interval, pop.length);
 		
 		while( parent_a.index == parent_b.index)
 		{
@@ -379,13 +440,14 @@ public class player72 implements ContestSubmission
 		// Defines epsilon given how small is the average fitness
     	double epsilon = define_epsilon(last_avg_children_ftiness);
     	double avg_children_fitness = childrenSumFitness/offsprings;
-    	
+    	System.out.println("last avg "+last_avg_children_ftiness+" current avg "+avg_children_fitness+" epsilon "+epsilon);
+    	Individual center_indiv = new Individual(sorted_pop.poll());
 		sorted_pop.clear();
-		if((Math.abs(last_avg_children_ftiness - avg_children_fitness) < epsilon) && !shock)
+		if((Math.abs(pop[0].fitness - avg_children_fitness) < epsilon) && !shock)
 		{
 			if(last_avg_children_ftiness > 0.1)
 			{
-				initPop(pop);
+				initPop_around_individual(pop, center_indiv, 0.75, false);
 				evaluate_pop(pop, sorted_pop, sumFitness);
 				System.out.println("Pop Init -------------------------------------------------------------------------------------------------");
 			}
@@ -417,26 +479,26 @@ public class player72 implements ContestSubmission
 		
 		if(last_avg_children_ftiness > 1)
 		{
-			epsilon = 0.0001;		
+			epsilon = 0.1;		
 		}
 		else if((last_avg_children_ftiness * 10) > 1)
 		{
-			epsilon = 0.00001;
+			epsilon = 0.01;
 		}
 		else if((last_avg_children_ftiness * 100) > 1)
 		{
-			epsilon = 0.000001;
+			epsilon = 0.001;
 		}
 		else if(last_avg_children_ftiness * 1000 > 1)
 		{
-			epsilon = 0.0000001;
+			epsilon = 0.0001;
 		}
 		else if(last_avg_children_ftiness * 10000 > 1)
 		{
-			epsilon = 0.00000001;
+			epsilon = 0.00001;
 		}else if(last_avg_children_ftiness * 100000 > 1)
 		{
-			epsilon = 0.000000001;
+			epsilon = 0.000001;
 		}
 		
 		return epsilon;
@@ -460,7 +522,7 @@ public class player72 implements ContestSubmission
         {
             Double fitness = (double) evaluation_.evaluate(pop[i].genome);
             
-            pop[i].fitness = fitness ;
+            pop[i].fitness = fitness;
             pop[i].index = i;
             
             Individual indiv = new Individual(pop[i]);
@@ -475,7 +537,7 @@ public class player72 implements ContestSubmission
         		printer.printFitnesses(pop, pop.length, rank_populations);
         		//printer.printRanks(pop, 1);
         		printer.printInfo(sumFitness, evals_left, pop[0].fitness, pop_size);
-        		printer.printBestIndivValues(pop, 100);
+        		//printer.printBestIndivValues(pop, 100);
     		}
         }
 	}
@@ -511,6 +573,36 @@ public class player72 implements ContestSubmission
 				mutate_individual(next_gen[indiv], dim_to_mutate);
 			}
 		}
+	}
+	
+	private void initPop_around_individual(Individual[] pop, Individual center_indiv, double radious, boolean kill_center)
+	{
+		System.out.println("Reform pop around best Individual");
+		
+		double upper_mutation_step_bound = 0.25;
+		double lower_mutation_step_bound = 0.05;
+		
+//		int ignore_first = 0;
+//		if(!kill_center)
+//		{
+			pop[0] = new Individual(center_indiv);
+			int ignore_first = 1;
+		//} 
+		
+		for(int individual = ignore_first; individual < pop_size; individual++)
+        {	
+			
+			for(int dim = 0; dim < dimensions; dim++)
+			{
+				double center = center_indiv.genome[dim] ;
+				pop[individual].genome[dim] =  Utils.double_in_range(center+radious, center-radious);
+				//pop[individual].mutation_steps[dim] = Utils.double_in_range(upper_mutation_step, lower_mutation_step);
+			}
+			pop[individual].fitness = 0;
+			pop[individual].index = individual;
+			pop[individual].rank = 0;
+			
+        }
 	}
 	
 	/*

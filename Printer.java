@@ -17,7 +17,11 @@ public class Printer {
 	{
 		for(int i = 0; i < individuals_to_display; i++)
 		{
-			System.out.println("indiv "+i+" fitness "+pop[i].fitness);
+			if(pop[i].fitness > 0.0001)
+			{
+				System.out.println("indiv "+i+" fitness "+pop[i].fitness);
+			}
+				
 		}
 		
 		System.out.println();

@@ -1,17 +1,21 @@
 
 public class ArithmeticCrossOver implements CrossOver {
 
+	public double genome_increment = 0.2;
+	public double mutation_increment = 0.15;
+	public double distance = 0.5;
+	
 	public Individual cross_over(Individual a, Individual b) {
 
 		int dimensions = player72.dimensions;	
 		Individual child = new Individual();
 	
 		// The distance can be fixed or random.
-		double distance = 0.5;
+		distance = 0.5;
 		// Increment can be used with distance to be able to make genomes that are not always in the middle between parents genome.
-		double genome_increment = 0;
+		genome_increment = 0;
 		// Likewise for steps.
-		double mutation_increment = 0.15;
+		mutation_increment = 0.15;
 		for(int dim = 0; dim < dimensions; dim++)
 		{
 			child.genome[dim] = fill_genome(a.genome[dim], b.genome[dim], child, distance, genome_increment);
