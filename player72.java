@@ -206,13 +206,13 @@ public class player72 implements ContestSubmission
              	//System.out.println("epsilon "+ (1 - (sumFitness/offsprings)/pop[0].fitness));
             	shock = true;
             	Individual center_indiv = new Individual(pop[0]);
-            	double radious = 0.5;
+            	double radious = 0.25;
             	kill_first = false;
             	epsilon = define_epsilon(center_indiv.fitness);
             	if(Math.abs(center_indiv.fitness - previous_top_idniv_fitness) < epsilon)
             	{
             		//center_indiv = new Individual(pop[10]);
-            		radious = 1.5;
+            		radious = 1;
             		kill_first = true;
            
             	}
