@@ -60,6 +60,7 @@ public class player72 implements ContestSubmission
         boolean isSeparable = Boolean.parseBoolean(props.getProperty("Separable"));
 
 		// Do sth with property values, e.g. specify relevant settings of your algorithm
+        
         if(isMultimodal && hasStructure){
             // Do sth
         	schaffers = true;
@@ -77,20 +78,69 @@ public class player72 implements ContestSubmission
         	pop_size = ranks * rank_populations;
         	offsprings = (int)((double)pop_size * 4);
         }
+        if(!isMultimodal)
+        {
+        	katsuura =false;
+        	schaffers =false;
+        }
     }
     
 	public void run()
 	{
-		if(schaffers)
+//		if(schaffers)
+//		{
+//			BentCigar();
+//			
+//		}
+//		else if(katsuura)
+//		{
+//			Katsuura();
+//		}else {
+//			BentCigar();
+//		}
+		
+		double[] center = {0,0,0,0,0 ,0,0,0,0,0};
+		double prec = 0.1;
+		int epoch = 0;
+		double best_score = 0;
+		int runs = 1200;
+		double gamma = 0.80;
+		double beta = 0.05;
+//		if(katsuura)
+//		{
+//			runs = 2000;
+//			gamma = 0.95;
+//		}
+//		else if(schaffers)
+//		{
+//			runs = 1000;
+//			gamma =0.95;
+//		}
+		
+		while(true)
 		{
-			BentCigar();
+			double current_score = 0;
+			current_score = public_wellfare(runs, prec, center);
 			
-		}
-		else if(katsuura)
-		{
-			Katsuura();
-		}else {
-			BentCigar();
+			epoch++;
+			prec *= (gamma+beta);
+			beta *= gamma;
+			prec = Math.max(0.0000001, prec);
+			
+//			if(epoch >10 )
+//			{
+//				runs = 3000;
+//			}
+			if(current_score > best_score)
+			{
+				best_score = current_score;
+			}
+//			else
+//			{
+//				prec =
+//			}
+			System.out.println(best_score);
+			System.out.println("-----------------------------------------------------------------------------------------------------------------------------");
 		}
 		
 		//Katsuura();
@@ -883,6 +933,170 @@ public class player72 implements ContestSubmission
 	public static void main(String args[])
 	{
 		System.out.println("start!");
+	}
+	
+	public double public_wellfare(int jobs, double precision, double[] center)
+	{
+		double[][] community = new double[10][100];
+		gather_participants(precision, center, community);
+		
+		double[][] fitnesses = new double[10][100];
+		init_fitnesses(0.00000000000000000000000000000000000000000000000000000001, fitnesses, community);
+		
+		int evals = 0;
+		double bestscore = 0;
+		while(evals < jobs)
+		{
+//			System.out.println();
+//			System.out.println("evals "+evals);
+//			System.out.println();
+			double[] job = new double[dimensions];
+			int[] currents = new int[dimensions];
+			
+			for(int dim = 0; dim < dimensions; dim++)
+			{
+				int participant = 0;
+				if(evals>(jobs/5))
+				{
+					participant = partial_rouletteWheel(fitnesses[dim], 2);	
+				}
+				else
+				{
+					participant = rouletteWheel(fitnesses[dim]);
+				}
+				
+				currents[dim] = participant;
+				job[dim] = community[dim][participant];
+				
+			}
+			
+			Double fitness = (double) evaluation_.evaluate(job);
+			
+			if(fitness > bestscore)
+			{
+				bestscore = fitness;
+				for(int i = 0; i< dimensions; i++)
+				{
+					center[i] = job[i];
+				}
+			}
+			// Reword workers!
+			for(int dim = 0; dim < dimensions; dim++)
+			{
+				
+				int participant = currents[dim];
+				
+				fitnesses[dim][participant] += fitness;
+				if(participant > 0)
+				{
+					fitnesses[dim][participant-1] += fitness/2;
+				}
+				if(participant<99)
+				{
+					fitnesses[dim][participant+1]+=fitness/2;
+				}
+				
+				//System.out.println("dim "+dim+" value "+job[dim] +" participant "+participant+" fitness "+fitness);
+			}
+			
+			if(evals % 1000 == 0)
+			{
+				System.out.println("best score "+bestscore);
+			}
+			evals++;
+		}
+		
+		return bestscore;
+	}
+	
+	public void gather_participants(double precision, double[] start, double[][] community) 
+	{   
+		
+		for(int dimension = 0; dimension < dimensions; dimension++)
+		{
+			double dim_start = start[dimension] - (50 * precision);
+			
+			for(int participant = 0; participant < community[0].length; participant ++)
+			{
+				if(dim_start >5 || dim_start <-5)
+				{
+					community[dimension][participant] = 1000;
+				}
+				else
+				{
+					community[dimension][participant] = dim_start;
+				}
+				
+				dim_start += precision;
+			}
+		}
+	}
+	
+	public void init_fitnesses(double competence_pressure, double[][] fitnesses, double[][] community)
+	{
+		for(int dimension = 0; dimension < dimensions; dimension++)
+		{
+			for(int participant = 0; participant < fitnesses[0].length; participant ++)
+			{
+				if(community[dimension][participant] > 500)
+				{
+					fitnesses[dimension][participant] = 0;
+				}
+				else
+				{
+					fitnesses[dimension][participant] = competence_pressure;
+				}
+			}
+		}
+	}
+	
+	public int rouletteWheel(double[] fitnesses)
+	{
+		double sumFitness = sumFitness(fitnesses);
+		
+		double rand = Utils.randomNumber(sumFitness);
+		
+		for(int i = 0; i < fitnesses.length; i++)
+		{
+			rand -= fitnesses[i];
+			
+			if(rand < 0)
+			{
+				return i;
+			}
+		}
+		
+		return rnd_.nextInt(fitnesses.length);
+	}
+	
+	public double sumFitness(double[] fitnesses)
+	{
+		double sumFitness = 0;
+		
+		for(int i = 0; i < fitnesses.length; i++)
+		{
+			sumFitness += fitnesses[i];
+		}
+		
+		return sumFitness;
+	}
+	
+	public int partial_rouletteWheel(double[] fitnesses, int interval)
+	{
+		double[] pop_interval = new double[interval];
+		int[] indexes = new int[interval];
+
+		for(int i = 0; i < interval; i++)
+		{
+			int choosen = player72.rnd_.nextInt(fitnesses.length);
+			
+			pop_interval[i] = fitnesses[choosen];
+			indexes[i] = choosen;
+		}
+		
+		int choosen_indiv = rouletteWheel(pop_interval);
+	
+		return indexes[choosen_indiv];
 	}
 	
 	
