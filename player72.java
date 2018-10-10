@@ -125,6 +125,8 @@ public class player72 implements ContestSubmission
 			epoch++;
 			prec *= (gamma+beta);
 			beta *= gamma;
+			gamma +=0.01;
+			gamma = Math.min(gamma, 0.9);
 			prec = Math.max(0.0000001, prec);
 			
 //			if(epoch >10 )
