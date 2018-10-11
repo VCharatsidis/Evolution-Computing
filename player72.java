@@ -102,11 +102,11 @@ public class player72 implements ContestSubmission
 		
 		
 		double[] center = {0,0,0,0,0 ,0,0,0,0,0};
-		double prec = 0.05;
+		double prec = 0.01;
 		int epoch = 0;
 		double best_score = 0;
-		int runs = 40;
-		double gamma = 0.85;
+		int runs = 200;
+		double gamma = 0.90;
 		
 //		if(schaffers)
 //		{
@@ -979,10 +979,10 @@ public class player72 implements ContestSubmission
 	
 	public double public_wellfare(int jobs, double precision, double[] center)
 	{
-		double[][] community = new double[10][200];
+		double[][] community = new double[10][1000];
 		gather_participants(precision, center, community);
 		
-		double[][] fitnesses = new double[10][200];
+		double[][] fitnesses = new double[10][1000];
 		init_fitnesses(0.00000000000000000000000000000000000000000000000000000001, fitnesses, community);
 		
 		int evals = 0;
