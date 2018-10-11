@@ -138,7 +138,7 @@ public class player72 implements ContestSubmission
 //			}
 				
 			epoch++;
-			prec *= (gamma+beta);
+			prec *= gamma;
 			//beta *= gamma;
 			
 			if(katsuura)
@@ -171,7 +171,7 @@ public class player72 implements ContestSubmission
 //				prec =
 //			}
 
-		    System.out.println("precision "+prec+" gamma "+gamma +" runs "+runs + " best_score "+best_score);
+//		    System.out.println("precision "+prec+" gamma "+gamma +" runs "+runs + " best_score "+best_score);
 //			System.out.println(best_score);
 //			System.out.println("------------------------------------------------------------------");
 		    long elapsedTime = System.currentTimeMillis() - start;
@@ -1057,10 +1057,10 @@ public class player72 implements ContestSubmission
 				//System.out.println("dim "+dim+" value "+job[dim] +" participant "+participant+" fitness "+fitness);
 			}
 			
-			if(evals % 100000 == 0)
-			{
-				System.out.println("best score "+bestscore);
-			}
+//			if(evals % 100000 == 0)
+//			{
+//				System.out.println("best score "+bestscore);
+//			}
 			evals++;
 		}
 		
