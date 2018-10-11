@@ -107,19 +107,19 @@ public class player72 implements ContestSubmission
 		double best_score = 0;
 		int runs = 40;
 		double gamma = 0.85;
-		double beta = 0.0;
-		if(schaffers)
-		{
-			runs = 1200;
-			gamma = 0.75;
-		}
-		else if(katsuura)
-		{
-			runs = 800;
-			gamma = 0.98;
-			//beta = 0.05;
-			
-		}
+		
+//		if(schaffers)
+//		{
+//			runs = 1200;
+//			gamma = 0.75;
+//		}
+//		else if(katsuura)
+//		{
+//			runs = 800;
+//			gamma = 0.98;
+//			//beta = 0.05;
+//			
+//		}
 		
 		while(true)
 		{
@@ -128,6 +128,10 @@ public class player72 implements ContestSubmission
 //			runs = runs - 100;
 //			runs = Math.max(200, runs);
 			current_score = public_wellfare(runs, prec, center);
+			if(current_score <-500)
+			{
+				break;
+			}
 //			if((current_score - best_score) < 0.0001 && current_score > 0.01)
 //			{
 //				for(int dim = 0; dim < dimensions; dim++)
@@ -136,26 +140,26 @@ public class player72 implements ContestSubmission
 //				}
 //				
 //			}
-				
-			epoch++;
+			prec = Math.max(5*0.0000001, prec);	
+//			epoch++;
 			prec *= gamma;
-			//beta *= gamma;
-			
-			if(katsuura)
-			{  
-				if(epoch>20)
-				{
-					runs = 500;
-					
-					
-				}
-				prec = Math.max(5*0.0000001, prec);
-			}
-			
-			if(schaffers)
-			{
-				prec = Math.max(5*0.00001, prec);
-			}
+//			//beta *= gamma;
+//			
+//			if(katsuura)
+//			{  
+//				if(epoch>20)
+//				{
+//					runs = 500;
+//					
+//					
+//				}
+//				
+//			}
+//			
+//			if(schaffers)
+//			{
+//				prec = Math.max(5*0.00001, prec);
+//			}
 			
 			
 //			if(epoch >10 )
@@ -979,7 +983,7 @@ public class player72 implements ContestSubmission
 		gather_participants(precision, center, community);
 		
 		double[][] fitnesses = new double[10][200];
-		//init_fitnesses(0.00000000000000000000000000000000000000000000000000000001, fitnesses, community);
+		init_fitnesses(0.00000000000000000000000000000000000000000000000000000001, fitnesses, community);
 		
 		int evals = 0;
 		double bestscore = 0;
@@ -1015,8 +1019,12 @@ public class player72 implements ContestSubmission
 				
 			}
 			
+			if(evals_left ==0)
+			{
+				return -1000;
+			}
 			Double fitness = (double) evaluation_.evaluate(job);
-			
+			evals_left--;
 			if(fitness > bestscore)
 			{
 				bestscore = fitness;
