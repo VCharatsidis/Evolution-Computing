@@ -109,18 +109,18 @@ public class player72 implements ContestSubmission
 		int runs = 200;
 		double gamma = 0.90;
 		
-//		if(schaffers)
-//		{
-//			runs = 1200;
-//			gamma = 0.75;
-//		}
-//		else if(katsuura)
-//		{
-//			runs = 500;
-//			gamma = 0.98;
-//			//beta = 0.05;
-//			
-//		}
+		if(schaffers)
+		{
+			runs = 1200;
+			gamma = 0.75;
+		}
+		else if(katsuura)
+		{
+			runs = 500;
+			gamma = 0.98;
+			//beta = 0.05;
+			
+		}
 		
 		while(true)
 		{
@@ -999,16 +999,16 @@ public class player72 implements ContestSubmission
 		double[][] community = new double[10][participants];
 		//double[] start = new double[10];
 		boolean[] neighbours = new boolean[dimensions];
-		
+		double[] difference = new double[dimensions];
 //		if(directed)
 //		{
-			for(int i = 0; i < dimensions; i++)
-			{
-				double[] neighbour = copy_center(center);
-				neighbour[i] = neighbour[i]-precision;
+		for(int i = 0; i < dimensions; i++)
+		{
+			double[] neighbour = copy_center(center);
+			neighbour[i] = neighbour[i]-precision;
 
-				Double fitness = (double) evaluation_.evaluate(neighbour);
-				
+			Double fitness = (double) evaluation_.evaluate(neighbour);
+			
 //				if(fitness > center_fitness)
 //				{
 //					//start[i] = center[i] - 2*(community[0].length/3)*precision ;
@@ -1019,10 +1019,11 @@ public class player72 implements ContestSubmission
 //					//start[i] = center[i] -(community[0].length/3)*precision;
 //					start[i] = center[i]; //-(community[0].length/2)*precision;
 //				}
-				
-				neighbours[i] = (fitness > center_fitness);
-			}
-			gather_participants(precision, center, community);
+			
+			neighbours[i] = (fitness > center_fitness);
+			difference[i] = (fitness - center_fitness);
+		}
+		gather_participants(precision, center, community);
 			//directed_gather_participants(precision, start, community);
 //		}
 //		
@@ -1104,79 +1105,109 @@ public class player72 implements ContestSubmission
 				int participant = currents[dim];
 				
 				fitnesses[dim][participant] += fitness;
-				
+				fitnesses[dim][participant] /= 2 ;
 				//one step neighbours
 				if(participant > 0)
 				{
+					
+//					fitnesses[dim][participant-1] += (fitness+difference[dim]);
+//					fitnesses[dim][participant-1] /= 2 ;
 					if(neighbours[dim])
 					{
 						fitnesses[dim][participant-1] += (fitness + fitness/8);
+						fitnesses[dim][participant-1] /= (17/8);
 					}
 					else
 					{
 						fitnesses[dim][participant-1] += (fitness - fitness/8);
+						fitnesses[dim][participant-1] /= (15/8);
 					}
 				}
 				else if(participant<(participants-1))
 				{
+					//fitnesses[dim][participant+1] += (fitness-difference[dim]);
+					//fitnesses[dim][participant+1] /= 2;
+					
 					if(neighbours[dim])
 					{
 						fitnesses[dim][participant+1] += (fitness - fitness/8);
+						fitnesses[dim][participant+1] /= (15/8);
 					}
 					else
 					{
 						fitnesses[dim][participant+1] += (fitness + fitness/8);
+						fitnesses[dim][participant+1] /= (17/8);
 					}
 				}
 				
 				//two step neighbours
 				if(participant>1)
 				{
+					//fitnesses[dim][participant-2] += (fitness+2*difference[dim]);
+					//fitnesses[dim][participant-2] /= 2;
+					
 					if(neighbours[dim])
 					{
 						fitnesses[dim][participant-2] += (fitness + fitness/4);
+						fitnesses[dim][participant-2] /= (9/4);
 					}
 					else
 					{
 						fitnesses[dim][participant-2] += (fitness - fitness/4);
+						fitnesses[dim][participant-2] /= (7/4);
 					}
 				}
 			    if(participant<(participants-2))
 				{
+			    	//fitnesses[dim][participant+2] += (fitness-2*difference[dim]);
+					//fitnesses[dim][participant+2] /= 2;
+					
 			    	if(neighbours[dim])
 					{
 						fitnesses[dim][participant+2] += (fitness - fitness/4);
+						fitnesses[dim][participant+2] /= (7/4);
 					}
 					else
 					{
 						fitnesses[dim][participant+2] += (fitness + fitness/4);
+						fitnesses[dim][participant+2] /= (9/4);
 					}
 				}
 //				
 				//three step neighbours
-				if(participant>2)
-				{
-					if(neighbours[dim])
-					{
-						fitnesses[dim][participant-3] += (fitness + fitness/2);
-					}
-					else
-					{
-						fitnesses[dim][participant-3] += (fitness - fitness/2);
-					}
-					
-				}
-				if(participant<(participants-3))
-				{
-					if(neighbours[dim])
-					{
-						fitnesses[dim][participant+3] += (fitness - fitness/2);
-					}
-					else
-					{
-						fitnesses[dim][participant+3] += (fitness + fitness/2);
-					}
-				}
+//				if(participant>2)
+//				{
+//					//fitnesses[dim][participant-3] += (fitness+3*difference[dim]);
+//					//fitnesses[dim][participant-3] /= 2;
+//					
+//					if(neighbours[dim])
+//					{
+//						fitnesses[dim][participant-3] += (fitness + fitness/2);
+//						fitnesses[dim][participant-3] /= (5/2);
+//					}
+//					else
+//					{
+//						fitnesses[dim][participant-3] += (fitness - fitness/2);
+//						fitnesses[dim][participant-3] /= (3/2);
+//					}
+//					
+//				}
+//				if(participant<(participants-3))
+//				{
+//					//fitnesses[dim][participant+3] += (fitness-3*difference[dim]);
+//					//fitnesses[dim][participant+3] /= 2;
+//					
+//					if(neighbours[dim])
+//					{
+//						fitnesses[dim][participant+3] += (fitness - fitness/2);
+//						fitnesses[dim][participant+3] /= (3/2);
+//					}
+//					else
+//					{
+//						fitnesses[dim][participant+3] += (fitness + fitness/2);
+//						fitnesses[dim][participant+3] /= (5/2);
+//					}
+//				}
 //				
 //				if(participant>3)
 //				{
