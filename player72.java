@@ -109,18 +109,18 @@ public class player72 implements ContestSubmission
 		int runs = 200;
 		double gamma = 0.90;
 		
-		if(schaffers)
-		{
-			runs = 1200;
-			gamma = 0.75;
-		}
-		else if(katsuura)
-		{
-			runs = 500;
-			gamma = 0.98;
-			//beta = 0.05;
-			
-		}
+//		if(schaffers)
+//		{
+//			runs = 1200;
+//			gamma = 0.75;
+//		}
+//		else if(katsuura)
+//		{
+//			runs = 500;
+//			gamma = 0.98;
+//			//beta = 0.05;
+//			
+//		}
 		
 		while(true)
 		{
@@ -997,11 +997,11 @@ public class player72 implements ContestSubmission
 	public double public_wellfare(int jobs, double precision, double[] center, int participants, boolean directed, double center_fitness)
 	{
 		double[][] community = new double[10][participants];
-		double[] start = new double[10];
+		//double[] start = new double[10];
 		boolean[] neighbours = new boolean[dimensions];
 		
-		if(directed)
-		{
+//		if(directed)
+//		{
 			for(int i = 0; i < dimensions; i++)
 			{
 				double[] neighbour = copy_center(center);
@@ -1024,12 +1024,12 @@ public class player72 implements ContestSubmission
 			}
 			gather_participants(precision, center, community);
 			//directed_gather_participants(precision, start, community);
-		}
-		
-		else
-		{
-			gather_participants(precision, center, community);
-		}
+//		}
+//		
+//		else
+//		{
+//			gather_participants(precision, center, community);
+//		}
 		
 		double[][] fitnesses = new double[10][participants];
 		init_fitnesses(0.00000000000000000000000000000000000000000000000000000001, fitnesses, community);
