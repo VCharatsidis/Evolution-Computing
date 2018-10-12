@@ -108,18 +108,18 @@ public class player72 implements ContestSubmission
 		int runs = 200;
 		double gamma = 0.90;
 		
-//		if(schaffers)
-//		{
-//			runs = 1200;
-//			gamma = 0.75;
-//		}
-//		else if(katsuura)
-//		{
-//			runs = 800;
-//			gamma = 0.98;
-//			//beta = 0.05;
-//			
-//		}
+		if(schaffers)
+		{
+			runs = 1200;
+			gamma = 0.75;
+		}
+		else if(katsuura)
+		{
+			runs = 500;
+			gamma = 0.98;
+			//beta = 0.05;
+			
+		}
 		
 		while(true)
 		{
@@ -132,14 +132,7 @@ public class player72 implements ContestSubmission
 			{
 				break;
 			}
-//			if((current_score - best_score) < 0.0001 && current_score > 0.01)
-//			{
-//				for(int dim = 0; dim < dimensions; dim++)
-//				{
-//					 center[dim] =  Utils.double_in_range(Math.min(center[dim]+0.001, 5), Math.max(-5, center[dim]-0.0001));
-//				}
-//				
-//			}
+
 			prec = Math.max(5*0.0000001, prec);	
 //			epoch++;
 			prec *= gamma;
@@ -1043,23 +1036,35 @@ public class player72 implements ContestSubmission
 				//fitness /= 2;
 				if(participant > 0)
 				{
-					fitnesses[dim][participant-1] += fitness/4;
+					fitnesses[dim][participant-1] += fitness/2;
 					//fitness /= 3;
 				}
 				if(participant<99)
 				{
-					fitnesses[dim][participant+1]+=fitness/4;
+					fitnesses[dim][participant+1]+=fitness/2;
 					//fitness /= 3;
 				}
 				
+				
 				if(participant>1)
 				{
-					fitnesses[dim][participant-2] += fitness/8;
+					fitnesses[dim][participant-2] += fitness/4;
 				}
 				
 				if(participant<98)
 				{
-					fitnesses[dim][participant+2]+= fitness/8;
+					fitnesses[dim][participant+2]+= fitness/4;
+				}
+				
+				
+				if(participant>2)
+				{
+					fitnesses[dim][participant-3] += fitness/8;
+				}
+				
+				if(participant<97)
+				{
+					fitnesses[dim][participant+3] += fitness/8;
 				}
 				
 				//System.out.println("dim "+dim+" value "+job[dim] +" participant "+participant+" fitness "+fitness);
