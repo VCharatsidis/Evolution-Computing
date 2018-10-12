@@ -102,6 +102,7 @@ public class player72 implements ContestSubmission
 		
 		
 		double[] center = {0,0,0,0,0 ,0,0,0,0,0};
+		double[] best_indiv = {0,0,0,0,0 ,0,0,0,0,0};
 		double prec = 0.01;
 		int epoch = 0;
 		double best_score = 0;
@@ -127,7 +128,11 @@ public class player72 implements ContestSubmission
 			double current_score = 0;
 //			runs = runs - 100;
 //			runs = Math.max(200, runs);
-			current_score = public_wellfare(runs, prec, center);
+			
+			current_score = public_wellfare(runs, prec, center, 1000, true, best_score);
+		
+			
+			
 			if(current_score <-500)
 			{
 				break;
@@ -159,13 +164,29 @@ public class player72 implements ContestSubmission
 //			{
 //				runs = 3000;
 //			}
+			
 			if(current_score > best_score)
 			{
 				best_score = current_score;
+//				for(int dim = 0; dim < dimensions; dim++)
+//				{
+//					best_indiv[dim] = center[dim];
+//				}
 			}
-//			else
+			
+			
+			
+//			for(int dim = 0; dim < dimensions; dim++)
 //			{
-//				prec =
+//				best_indiv[dim] = center[dim];
+//			}
+			
+//			else 
+//			{
+//				for(int dim = 0; dim < dimensions; dim++)
+//				{
+//					center[dim] = best_indiv[dim];
+//				}
 //			}
 
 //		    System.out.println("precision "+prec+" gamma "+gamma +" runs "+runs + " best_score "+best_score);
@@ -176,10 +197,13 @@ public class player72 implements ContestSubmission
 		    {
 		    	break;
 		    }
+		    epoch++;
 		}
 		
 		//Katsuura();
 	}
+	
+	
 	
 //	private void Katsuura()
 //	{
@@ -970,16 +994,48 @@ public class player72 implements ContestSubmission
 		System.out.println("start!");
 	}
 	
-	public double public_wellfare(int jobs, double precision, double[] center)
+	public double public_wellfare(int jobs, double precision, double[] center, int participants, boolean directed, double center_fitness)
 	{
-		double[][] community = new double[10][1000];
-		gather_participants(precision, center, community);
+		double[][] community = new double[10][participants];
+		double[] start = new double[10];
+		boolean[] neighbours = new boolean[dimensions];
 		
-		double[][] fitnesses = new double[10][1000];
+		if(directed)
+		{
+			for(int i = 0; i < dimensions; i++)
+			{
+				double[] neighbour = copy_center(center);
+				neighbour[i] = neighbour[i]-precision;
+
+				Double fitness = (double) evaluation_.evaluate(neighbour);
+				
+//				if(fitness > center_fitness)
+//				{
+//					//start[i] = center[i] - 2*(community[0].length/3)*precision ;
+//					start[i] = neighbour[i]; //-(community[0].length/2)*precision;
+//				}
+//				else
+//				{
+//					//start[i] = center[i] -(community[0].length/3)*precision;
+//					start[i] = center[i]; //-(community[0].length/2)*precision;
+//				}
+				
+				neighbours[i] = (fitness > center_fitness);
+			}
+			gather_participants(precision, center, community);
+			//directed_gather_participants(precision, start, community);
+		}
+		
+		else
+		{
+			gather_participants(precision, center, community);
+		}
+		
+		double[][] fitnesses = new double[10][participants];
 		init_fitnesses(0.00000000000000000000000000000000000000000000000000000001, fitnesses, community);
 		
 		int evals = 0;
-		double bestscore = 0;
+		double best_score = 0;
 		while(evals < jobs)
 		{
 //			System.out.println();
@@ -995,16 +1051,27 @@ public class player72 implements ContestSubmission
 				if(evals>(9*(jobs/10)))
 				{
 					participant = rouletteWheel(fitnesses[dim]);
+					while(fitnesses[dim][participant] < 0)
+					{
+						participant = rnd_.nextInt(community[dim].length);
+					}
 				}
-				else if(evals>(2*(jobs/3)))
+				else if(evals>(4*(jobs/5)))
 				{
 					participant = partial_rouletteWheel(fitnesses[dim], 2);
-					
+					while(fitnesses[dim][participant] < 0)
+					{
+						participant = rnd_.nextInt(community[dim].length);
+					}
 				}
 				else
 				{
 					participant = rnd_.nextInt(community[dim].length);
 					
+					while(fitnesses[dim][participant] < 0)
+					{
+						participant = rnd_.nextInt(community[dim].length);
+					}
 				}
 //				
 				currents[dim] = participant;
@@ -1016,11 +1083,15 @@ public class player72 implements ContestSubmission
 			{
 				return -1000;
 			}
+			
+			
 			Double fitness = (double) evaluation_.evaluate(job);
 			evals_left--;
-			if(fitness > bestscore)
+			
+			if(fitness > best_score)
 			{
-				bestscore = fitness;
+				center_fitness = fitness;
+				best_score = fitness;
 				for(int i = 0; i< dimensions; i++)
 				{
 					center[i] = job[i];
@@ -1033,39 +1104,103 @@ public class player72 implements ContestSubmission
 				int participant = currents[dim];
 				
 				fitnesses[dim][participant] += fitness;
-				//fitness /= 2;
+				
+				//one step neighbours
 				if(participant > 0)
 				{
-					fitnesses[dim][participant-1] += fitness/2;
-					//fitness /= 3;
+					if(neighbours[dim])
+					{
+						fitnesses[dim][participant-1] += (fitness + fitness/8);
+					}
+					else
+					{
+						fitnesses[dim][participant-1] += (fitness - fitness/8);
+					}
 				}
-				if(participant<99)
+				else if(participant<(participants-1))
 				{
-					fitnesses[dim][participant+1]+=fitness/2;
-					//fitness /= 3;
+					if(neighbours[dim])
+					{
+						fitnesses[dim][participant+1] += (fitness - fitness/8);
+					}
+					else
+					{
+						fitnesses[dim][participant+1] += (fitness + fitness/8);
+					}
 				}
 				
-				
+				//two step neighbours
 				if(participant>1)
 				{
-					fitnesses[dim][participant-2] += fitness/4;
+					if(neighbours[dim])
+					{
+						fitnesses[dim][participant-2] += (fitness + fitness/4);
+					}
+					else
+					{
+						fitnesses[dim][participant-2] += (fitness - fitness/4);
+					}
 				}
-				
-				if(participant<98)
+			    if(participant<(participants-2))
 				{
-					fitnesses[dim][participant+2]+= fitness/4;
+			    	if(neighbours[dim])
+					{
+						fitnesses[dim][participant+2] += (fitness - fitness/4);
+					}
+					else
+					{
+						fitnesses[dim][participant+2] += (fitness + fitness/4);
+					}
 				}
-				
-				
+//				
+				//three step neighbours
 				if(participant>2)
 				{
-					fitnesses[dim][participant-3] += fitness/8;
+					if(neighbours[dim])
+					{
+						fitnesses[dim][participant-3] += (fitness + fitness/2);
+					}
+					else
+					{
+						fitnesses[dim][participant-3] += (fitness - fitness/2);
+					}
+					
 				}
-				
-				if(participant<97)
+				if(participant<(participants-3))
 				{
-					fitnesses[dim][participant+3] += fitness/8;
+					if(neighbours[dim])
+					{
+						fitnesses[dim][participant+3] += (fitness - fitness/2);
+					}
+					else
+					{
+						fitnesses[dim][participant+3] += (fitness + fitness/2);
+					}
 				}
+//				
+//				if(participant>3)
+//				{
+//					if(neighbours[dim])
+//					{
+//						fitnesses[dim][participant-4] += (fitness + 3*fitness/4);
+//					}
+//					else
+//					{
+//						fitnesses[dim][participant-4] += (fitness - 3*fitness/4);
+//					}
+//					
+//				}
+//				if(participant<(participants-4))
+//				{
+//					if(neighbours[dim])
+//					{
+//						fitnesses[dim][participant+4] += (fitness - 3*fitness/4);
+//					}
+//					else
+//					{
+//						fitnesses[dim][participant+4] += (fitness + 3*fitness/4);
+//					}
+//				}
 				
 				//System.out.println("dim "+dim+" value "+job[dim] +" participant "+participant+" fitness "+fitness);
 			}
@@ -1094,7 +1229,30 @@ public class player72 implements ContestSubmission
 //		}
 		
 		
-		return bestscore;
+		return center_fitness;
+	}
+	
+	public void directed_gather_participants(double precision, double[] start, double[][] community) 
+	{   
+		
+		for(int dimension = 0; dimension < dimensions; dimension++)
+		{
+			double dim_start = start[dimension];
+			
+			for(int participant = 0; participant < community[0].length; participant ++)
+			{
+				if(dim_start >5 || dim_start <-5)
+				{
+					community[dimension][participant] = 1000;
+				}
+				else
+				{
+					community[dimension][participant] = dim_start;
+				}
+				
+				dim_start += precision;
+			}
+		}
 	}
 	
 	public void gather_participants(double precision, double[] start, double[][] community) 
@@ -1128,7 +1286,7 @@ public class player72 implements ContestSubmission
 			{
 				if(community[dimension][participant] > 500)
 				{
-					fitnesses[dimension][participant] = 0;
+					fitnesses[dimension][participant] = -5;
 				}
 				else
 				{
@@ -1185,6 +1343,17 @@ public class player72 implements ContestSubmission
 		int choosen_indiv = rouletteWheel(pop_interval);
 	
 		return indexes[choosen_indiv];
+	}
+	
+	public double[] copy_center(double[] center)
+	{
+		double[] neighbour = new double[10];
+		for(int dim = 0; dim < dimensions; dim++)
+		{
+			neighbour[dim] = center[dim];
+		}
+		
+		return neighbour;
 	}
 	
 	
